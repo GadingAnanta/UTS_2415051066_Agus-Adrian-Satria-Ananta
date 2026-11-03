@@ -1,0 +1,12 @@
+   {
+     "tips": [
+       {
+         "id": 1,
+         "title": "Kapan ganti oli mesin?",
+         "category": "Oli",
+         "description": "Ganti tiap 2.000 km atau 2 bulan.",
+         "interval_km": 2000,
+         "interval_month": 2
+       }
+     ]
+   }
