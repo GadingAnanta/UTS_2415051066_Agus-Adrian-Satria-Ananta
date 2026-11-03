@@ -48,18 +48,13 @@ dependencies:
 
   # --- Dependency sesuai spesifikasi tugas UTS ---
 
-  # Penyimpanan lokal berbasis SQLite + helper path
-  sqflite: ^2.4.5
-  path: ^1.9.1
+  # Backend Supabase (PostgreSQL + PostgREST). Semua data aplikasi
+  # disimpan di sini; tidak ada database lokal lagi.
+  supabase_flutter: ^2.18.3
 
-  # Khusus pratinjau di browser (Chrome): SQLite versi WebAssembly.
-  # Di Android dependency ini tidak dipakai (lihat lib/database/database_factory_*.dart).
-  #
-  # Versi sengaja dikunci di 1.0.2 (bukan 1.2.0) karena 1.1.0+ menarik paket
-  # sqlite3 3.x yang memakai "build hook" native assets. Build hook itu gagal
-  # dijalankan bila path proyek mengandung spasi (folder "SEMESTER 5"),
-  # sedangkan sqlite3 2.x tidak memakai hook sama sekali.
-  sqflite_common_ffi_web: 1.0.2
+  # Membaca konfigurasi dari file .env (URL + anon key).
+  # File .env TIDAK di-commit (lihat .gitignore).
+  flutter_dotenv: ^6.0.1
 
   # State management
   provider: ^6.1.5
@@ -95,6 +90,13 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Konfigurasi Supabase dibaca lewat flutter_dotenv.
+  # .env berisi URL + anon key dan TIDAK di-commit (masuk .gitignore).
+  # .env.example ikut di-commit sebagai contoh; salin menjadi .env lalu isi.
+  assets:
+    - .env
+    - .env.example
 
   # To add assets to your application, add an assets section, like this:
   # assets:

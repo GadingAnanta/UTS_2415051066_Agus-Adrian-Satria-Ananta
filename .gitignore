@@ -46,3 +46,15 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Konfigurasi rahasia (URL + anon key Supabase).
+# Yang di-commit hanya contohnya.
+.env
+!.env.example
+
+# Aset SQLite versi web (sudah tidak dipakai sejak migrasi ke Supabase).
+/web/sqlite3.wasm
+/web/sqflite_sw.js
+
+# Folder build milik modul Android (dibuat Gradle).
+/android/build/
