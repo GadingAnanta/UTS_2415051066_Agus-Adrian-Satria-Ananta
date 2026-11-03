@@ -3,8 +3,11 @@
 /// Contoh: Oli Mesin punya interval 2.000 km atau 2 bulan. Aki hanya punya
 /// interval waktu 24 bulan, sehingga `kmInterval` bernilai null.
 ///
-/// Data awal diambil dari `defaultComponentIntervals` (lihat `utils/constants.dart`)
-/// dan boleh diubah pengguna lewat halaman Pengaturan Interval.
+/// Data awal diambil dari `defaultComponentIntervals` (lihat `utils/constants.dart`).
+///
+/// Sejak aplikasi memakai Supabase, daftar komponen bukan lagi tabel
+/// database melainkan konfigurasi statis di sisi aplikasi. Karena itu kelas
+/// ini hanya menyimpan data di memori (tidak ada `toMap`/`fromMap`).
 class ComponentInterval {
   /// Kunci unik & tetap, dipakai sebagai penghubung ke catatan servis.
   final String key;
@@ -74,30 +77,6 @@ class ComponentInterval {
       bagian.add('$monthInterval bulan');
     }
     return bagian.isEmpty ? 'Tidak diatur' : bagian.join(' / ');
-  }
-
-  Map<String, Object?> toMap() {
-    return <String, Object?>{
-      'key': key,
-      'name': name,
-      'km_interval': kmInterval,
-      'month_interval': monthInterval,
-      'icon_key': iconKey,
-      'is_active': isActive ? 1 : 0,
-      'sort_order': sortOrder,
-    };
-  }
-
-  factory ComponentInterval.fromMap(Map<String, Object?> map) {
-    return ComponentInterval(
-      key: map['key'] as String,
-      name: map['name'] as String,
-      kmInterval: map['km_interval'] as int?,
-      monthInterval: map['month_interval'] as int?,
-      iconKey: map['icon_key'] as String? ?? 'lainnya',
-      isActive: (map['is_active'] as int? ?? 1) == 1,
-      sortOrder: map['sort_order'] as int? ?? 0,
-    );
   }
 
   @override

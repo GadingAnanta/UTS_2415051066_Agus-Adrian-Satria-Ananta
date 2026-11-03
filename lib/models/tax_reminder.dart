@@ -21,31 +21,26 @@ enum TaxType {
   }
 }
 
-/// Pengingat tanggal jatuh tempo pajak / STNK untuk satu kendaraan.
+/// Pengingat tanggal jatuh tempo pajak / STNK.
 ///
-/// Tiap kendaraan punya maksimal satu baris untuk tiap [TaxType]
-/// (dijaga oleh constraint UNIQUE(vehicle_id, type) di database).
+/// Sejak data dipindah ke Supabase, tanggal jatuh tempo disimpan sebagai
+/// kolom `tax_due_date` dan `stnk_due_date` pada tabel `vehicles`.
+/// Jadi kelas ini bukan lagi tabel tersendiri, melainkan objek nilai
+/// (value object) yang dibentuk dari data kendaraan untuk ditampilkan
+/// dan dijadwalkan sebagai notifikasi.
 class TaxReminder {
-  final int? id;
-  final int vehicleId;
   final TaxType type;
 
   /// Tanggal jatuh tempo.
   final DateTime dueDate;
 
-  /// Kirim notifikasi 30 hari sebelum jatuh tempo.
-  final bool notifyH30;
-
-  /// Kirim notifikasi 7 hari sebelum jatuh tempo.
-  final bool notifyH7;
+  /// Id kendaraan pemilik pengingat (opsional, untuk keperluan notifikasi).
+  final int? vehicleId;
 
   const TaxReminder({
-    this.id,
-    required this.vehicleId,
     required this.type,
     required this.dueDate,
-    this.notifyH30 = true,
-    this.notifyH7 = true,
+    this.vehicleId,
   });
 
   /// Sisa hari menuju jatuh tempo (negatif = sudah lewat).
@@ -58,43 +53,11 @@ class TaxReminder {
 
   bool get isOverdue => daysRemaining < 0;
 
-  TaxReminder copyWith({
-    int? id,
-    int? vehicleId,
-    TaxType? type,
-    DateTime? dueDate,
-    bool? notifyH30,
-    bool? notifyH7,
-  }) {
+  TaxReminder copyWith({TaxType? type, DateTime? dueDate, int? vehicleId}) {
     return TaxReminder(
-      id: id ?? this.id,
-      vehicleId: vehicleId ?? this.vehicleId,
       type: type ?? this.type,
       dueDate: dueDate ?? this.dueDate,
-      notifyH30: notifyH30 ?? this.notifyH30,
-      notifyH7: notifyH7 ?? this.notifyH7,
-    );
-  }
-
-  Map<String, Object?> toMap() {
-    return <String, Object?>{
-      if (id != null) 'id': id,
-      'vehicle_id': vehicleId,
-      'type': type.value,
-      'due_date': dueDate.toIso8601String(),
-      'notify_h30': notifyH30 ? 1 : 0,
-      'notify_h7': notifyH7 ? 1 : 0,
-    };
-  }
-
-  factory TaxReminder.fromMap(Map<String, Object?> map) {
-    return TaxReminder(
-      id: map['id'] as int?,
-      vehicleId: map['vehicle_id'] as int,
-      type: TaxType.fromValue(map['type'] as String),
-      dueDate: DateTime.parse(map['due_date'] as String),
-      notifyH30: (map['notify_h30'] as int? ?? 1) == 1,
-      notifyH7: (map['notify_h7'] as int? ?? 1) == 1,
+      vehicleId: vehicleId ?? this.vehicleId,
     );
   }
 
