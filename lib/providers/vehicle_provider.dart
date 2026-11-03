@@ -1,42 +1,83 @@
 import 'package:flutter/foundation.dart';
 
-import '../database/database_helper.dart';
 import '../models/vehicle.dart';
+import '../repositories/vehicle_repository.dart';
 import '../services/notification_service.dart';
+import '../services/supabase_service.dart';
+import '../utils/app_exception.dart';
+import 'load_state.dart';
 
 /// Sumber kebenaran (single source of truth) untuk data kendaraan.
 ///
-/// UI tidak pernah memanggil [DatabaseHelper] secara langsung. UI memanggil
-/// provider, provider yang berbicara dengan database, lalu memberi tahu widget
-/// lewat `notifyListeners()`.
+/// Alur lapisannya: **Screen → Provider → Repository → Supabase**.
+/// Screen tidak pernah memanggil Supabase; provider memakai
+/// [VehicleRepository], lalu memberi tahu widget lewat `notifyListeners()`.
 class VehicleProvider extends ChangeNotifier {
-  final DatabaseHelper _db = DatabaseHelper.instance;
+  VehicleProvider({VehicleRepository? repository})
+      : _repository = repository ?? VehicleRepository();
+
+  final VehicleRepository _repository;
 
   List<Vehicle> _vehicles = <Vehicle>[];
-  bool _isLoading = false;
+  LoadState _state = LoadState.idle;
   String? _errorMessage;
+
+  /// State bersama (shared state): kendaraan yang sedang dipilih/dibuka.
+  /// Dipakai dashboard & daftar supaya keduanya menunjuk kendaraan yang sama.
+  int? _selectedVehicleId;
 
   /// Daftar kendaraan (tidak bisa diubah dari luar).
   List<Vehicle> get vehicles => List<Vehicle>.unmodifiable(_vehicles);
 
-  bool get isLoading => _isLoading;
+  /// Status pemuatan: idle / loading / success / error.
+  LoadState get state => _state;
+
+  bool get isLoading => _state == LoadState.loading;
   bool get isEmpty => _vehicles.isEmpty;
 
   /// Pesan error terakhir, ditampilkan UI lewat SnackBar.
   String? get errorMessage => _errorMessage;
 
-  /// Ambil ulang seluruh data kendaraan dari database.
+  /// Id kendaraan yang sedang dipilih (state bersama antar halaman).
+  int? get selectedVehicleId => _selectedVehicleId;
+
+  /// Objek kendaraan yang sedang dipilih, `null` bila belum ada.
+  Vehicle? get selectedVehicle {
+    final int? id = _selectedVehicleId;
+    return id == null ? null : vehicleById(id);
+  }
+
+  /// Menandai kendaraan sebagai "sedang dibuka".
+  void selectVehicle(int? id) {
+    if (_selectedVehicleId == id) return;
+    _selectedVehicleId = id;
+    notifyListeners();
+  }
+
+  /// Ambil ulang seluruh data kendaraan dari Supabase.
   Future<void> loadVehicles() async {
-    _isLoading = true;
+    _state = LoadState.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _vehicles = await _db.getVehicles();
+      _vehicles = await _repository.fetchAll(
+        userId: SupabaseService.instance.demoUserId,
+      );
+
+      // Kalau kendaraan terpilih sudah tidak ada, lepaskan pilihannya.
+      final int? dipilih = _selectedVehicleId;
+      if (dipilih != null && vehicleById(dipilih) == null) {
+        _selectedVehicleId = _vehicles.isEmpty ? null : _vehicles.first.id;
+      } else if (dipilih == null && _vehicles.isNotEmpty) {
+        _selectedVehicleId = _vehicles.first.id;
+      }
+
+      _state = LoadState.success;
     } catch (e) {
-      _errorMessage = 'Gagal memuat daftar kendaraan: $e';
+      _errorMessage = e is AppException ? e.pesan : 'Gagal memuat daftar kendaraan.';
+      _state = LoadState.error;
     } finally {
-      _isLoading = false;
       notifyListeners();
     }
   }
@@ -47,48 +88,46 @@ class VehicleProvider extends ChangeNotifier {
     _errorMessage = null;
 
     try {
-      if (vehicle.id == null) {
-        await _db.insertVehicle(vehicle);
-      } else {
-        final int terubah = await _db.updateVehicle(vehicle);
-        if (terubah == 0) {
-          _errorMessage = 'Kendaraan tidak ditemukan, mungkin sudah dihapus.';
-          notifyListeners();
-          return false;
-        }
-      }
+      final Vehicle tersimpan = vehicle.id == null
+          ? await _repository.create(vehicle)
+          : await _repository.update(vehicle);
 
-      // Muat ulang supaya urutan & data di UI selalu sama dengan database.
-      _vehicles = await _db.getVehicles();
+      _gabungkan(tersimpan);
+
+      // Sinkronkan ulang pengingat pajak karena tanggalnya mungkin berubah.
+      await NotificationService.instance.syncTaxReminders(tersimpan);
+
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = 'Gagal menyimpan kendaraan: $e';
+      _errorMessage = e is AppException ? e.pesan : 'Gagal menyimpan kendaraan.';
       notifyListeners();
       return false;
     }
   }
 
-  /// Hapus kendaraan beserta seluruh riwayat servis dan pengingat pajaknya.
+  /// Hapus kendaraan beserta seluruh riwayat servisnya (cascade di database).
   Future<bool> deleteVehicle(int id) async {
     _errorMessage = null;
 
     try {
-      final int terhapus = await _db.deleteVehicle(id);
-      if (terhapus == 0) {
-        _errorMessage = 'Kendaraan tidak ditemukan, mungkin sudah dihapus.';
-        notifyListeners();
-        return false;
-      }
+      await _repository.delete(id);
+      _vehicles = _vehicles
+          .where((Vehicle kendaraan) => kendaraan.id != id)
+          .toList(growable: false);
 
-      _vehicles = await _db.getVehicles();
-      notifyListeners();
+      if (_selectedVehicleId == id) {
+        _selectedVehicleId = _vehicles.isEmpty ? null : _vehicles.first.id;
+      }
 
       // Notifikasi milik kendaraan ini tidak relevan lagi.
       await NotificationService.instance.cancelForVehicle(id);
+
+      _state = LoadState.success;
+      notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = 'Gagal menghapus kendaraan: $e';
+      _errorMessage = e is AppException ? e.pesan : 'Gagal menghapus kendaraan.';
       notifyListeners();
       return false;
     }
@@ -108,20 +147,45 @@ class VehicleProvider extends ChangeNotifier {
       return false;
     }
     if (newKm < kendaraan.currentKm) {
-      _errorMessage =
-          'KM baru (${newKm.toString()}) tidak boleh lebih kecil dari KM terakhir '
-          '(${kendaraan.currentKm.toString()}).';
+      _errorMessage = 'KM baru (${newKm.toString()}) tidak boleh lebih kecil dari '
+          'KM terakhir (${kendaraan.currentKm.toString()}).';
       notifyListeners();
       return false;
     }
 
     try {
-      await _db.updateVehicleKm(vehicleId, newKm);
-      _vehicles = await _db.getVehicles();
+      final Vehicle terbaru = await _repository.updateKm(vehicleId, newKm);
+      _gabungkan(terbaru);
+
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = 'Gagal memperbarui kilometer: $e';
+      _errorMessage = e is AppException ? e.pesan : 'Gagal memperbarui kilometer.';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Simpan tanggal jatuh tempo pajak & STNK satu kendaraan.
+  Future<bool> saveTaxDates(
+    int vehicleId, {
+    required DateTime? taxDueDate,
+    required DateTime? stnkDueDate,
+  }) async {
+    _errorMessage = null;
+
+    try {
+      final Vehicle terbaru = await _repository.updateTaxDates(
+        vehicleId,
+        taxDueDate: taxDueDate,
+        stnkDueDate: stnkDueDate,
+      );
+      _gabungkan(terbaru);
+      await NotificationService.instance.syncTaxReminders(terbaru);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e is AppException ? e.pesan : 'Gagal menyimpan tanggal pajak.';
       notifyListeners();
       return false;
     }
@@ -133,6 +197,22 @@ class VehicleProvider extends ChangeNotifier {
       if (kendaraan.id == id) return kendaraan;
     }
     return null;
+  }
+
+  /// Mengganti satu entri di daftar dengan versi terbaru dari server.
+  void _gabungkan(Vehicle terbaru) {
+    final int? id = terbaru.id;
+    if (id == null) return;
+
+    final int indeks = _vehicles.indexWhere((Vehicle k) => k.id == id);
+    if (indeks == -1) {
+      _vehicles = <Vehicle>[..._vehicles, terbaru];
+    } else {
+      final List<Vehicle> salinan = List<Vehicle>.of(_vehicles);
+      salinan[indeks] = terbaru;
+      _vehicles = salinan;
+    }
+    _state = LoadState.success;
   }
 
   /// Bersihkan pesan error setelah ditampilkan di SnackBar.

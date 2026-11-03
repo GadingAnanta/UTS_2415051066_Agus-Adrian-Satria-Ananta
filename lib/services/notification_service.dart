@@ -258,12 +258,11 @@ class NotificationService {
 
   /// Menyusun ulang jadwal pengingat pajak & STNK untuk satu kendaraan.
   ///
-  /// H-30 dan H-7 dikirim jam 09.00 sesuai pilihan pengguna. Jadwal yang
-  /// tanggalnya sudah lewat dilewati (tidak ada gunanya mengingatkan masa lalu).
-  Future<void> syncTaxReminders({
-    required Vehicle vehicle,
-    required List<TaxReminder> reminders,
-  }) async {
+  /// Tanggal jatuh tempo sekarang ikut tersimpan di tabel `vehicles`
+  /// (`tax_due_date` & `stnk_due_date`), jadi cukup satu objek [Vehicle].
+  /// H-30 dan H-7 selalu dijadwalkan; jadwal yang tanggalnya sudah lewat
+  /// dilewati (tidak ada gunanya mengingatkan masa lalu).
+  Future<void> syncTaxReminders(Vehicle vehicle) async {
     if (!_siap || vehicle.id == null) return;
 
     final int vehicleId = vehicle.id!;
@@ -275,22 +274,29 @@ class NotificationService {
       }
     }
 
-    for (final TaxReminder reminder in reminders) {
-      if (reminder.notifyH30) {
-        await _jadwalkanPajak(
-          vehicle: vehicle,
-          reminder: reminder,
-          hariSebelum: 30,
-        );
-      }
-      if (reminder.notifyH7) {
-        await _jadwalkanPajak(
-          vehicle: vehicle,
-          reminder: reminder,
-          hariSebelum: 7,
-        );
-      }
+    for (final TaxReminder reminder in taxRemindersFor(vehicle)) {
+      await _jadwalkanPajak(vehicle: vehicle, reminder: reminder, hariSebelum: 30);
+      await _jadwalkanPajak(vehicle: vehicle, reminder: reminder, hariSebelum: 7);
     }
+  }
+
+  /// Membentuk daftar pengingat dari tanggal jatuh tempo yang tersimpan
+  /// di [vehicle]. Tanggal yang kosong tidak menghasilkan pengingat.
+  static List<TaxReminder> taxRemindersFor(Vehicle vehicle) {
+    return <TaxReminder>[
+      if (vehicle.taxDueDate != null)
+        TaxReminder(
+          type: TaxType.pajakTahunan,
+          dueDate: vehicle.taxDueDate!,
+          vehicleId: vehicle.id,
+        ),
+      if (vehicle.stnkDueDate != null)
+        TaxReminder(
+          type: TaxType.stnkLimaTahunan,
+          dueDate: vehicle.stnkDueDate!,
+          vehicleId: vehicle.id,
+        ),
+    ];
   }
 
   Future<void> _jadwalkanPajak({

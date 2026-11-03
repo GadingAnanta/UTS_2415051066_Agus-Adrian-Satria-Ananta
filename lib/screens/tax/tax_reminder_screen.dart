@@ -3,15 +3,16 @@ import 'package:provider/provider.dart';
 
 import '../../models/tax_reminder.dart';
 import '../../models/vehicle.dart';
-import '../../providers/tax_provider.dart';
+import '../../providers/vehicle_provider.dart';
 import '../../services/notification_service.dart';
 import '../../utils/formatters.dart';
 
-/// Halaman pengaturan pengingat pajak tahunan & STNK 5 tahunan.
+/// Halaman pengaturan tanggal jatuh tempo pajak tahunan & STNK 5 tahunan.
 ///
-/// Tiap jenis dokumen punya satu tanggal jatuh tempo dan dua pilihan
-/// pengingat: H-30 dan H-7. Setelah disimpan, jadwal notifikasi langsung
-/// disusun ulang oleh [TaxProvider] lewat `NotificationService`.
+/// Sejak data pindah ke Supabase, tanggal jatuh tempo disimpan sebagai kolom
+/// `tax_due_date` dan `stnk_due_date` pada tabel `vehicles`. Penyimpanan
+/// dilakukan lewat [VehicleProvider] (Provider → Repository → Supabase),
+/// lalu jadwal notifikasi H-30 dan H-7 disusun ulang otomatis.
 class TaxReminderScreen extends StatefulWidget {
   final Vehicle vehicle;
 
@@ -22,13 +23,13 @@ class TaxReminderScreen extends StatefulWidget {
 }
 
 class _TaxReminderScreenState extends State<TaxReminderScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      context.read<TaxProvider>().loadForVehicle(widget.vehicle);
-    });
+  bool _menyimpan = false;
+
+  /// Kendaraan terbaru dari provider, supaya tanggal yang tampil selalu
+  /// sama dengan data di database.
+  Vehicle _kendaraan(BuildContext context) {
+    return context.read<VehicleProvider>().vehicleById(widget.vehicle.id!) ??
+        widget.vehicle;
   }
 
   void _pesan(String teks, {bool error = false}) {
@@ -40,7 +41,6 @@ class _TaxReminderScreenState extends State<TaxReminderScreen> {
     );
   }
 
-  /// Memilih tanggal jatuh tempo. Mengembalikan `null` bila dibatalkan.
   Future<DateTime?> _pilihTanggal(DateTime? tanggalAwal) async {
     final DateTime hariIni = DateTime.now();
     return showDatePicker(
@@ -50,170 +50,126 @@ class _TaxReminderScreenState extends State<TaxReminderScreen> {
       firstDate: DateTime(hariIni.year - 5),
       lastDate: DateTime(hariIni.year + 10, 12, 31),
       helpText: 'Pilih tanggal jatuh tempo',
+      locale: const Locale('id', 'ID'),
     );
   }
 
-  Future<void> _simpan(TaxReminder reminder) async {
-    final TaxProvider provider = context.read<TaxProvider>();
-    final bool berhasil = await provider.saveReminder(reminder);
+  /// Menyimpan satu tanggal. [tipe] menentukan kolom mana yang diubah.
+  Future<void> _simpan(TaxType tipe, DateTime? tanggal) async {
+    final Vehicle kendaraan = _kendaraan(context);
+    final VehicleProvider provider = context.read<VehicleProvider>();
+
+    setState(() => _menyimpan = true);
+
+    final bool berhasil = await provider.saveTaxDates(
+      kendaraan.id!,
+      taxDueDate: tipe == TaxType.pajakTahunan ? tanggal : kendaraan.taxDueDate,
+      stnkDueDate: tipe == TaxType.stnkLimaTahunan ? tanggal : kendaraan.stnkDueDate,
+    );
 
     if (!mounted) return;
+    setState(() => _menyimpan = false);
 
     if (!berhasil) {
-      _pesan(provider.error ?? 'Gagal menyimpan pengingat.', error: true);
+      _pesan(provider.errorMessage ?? 'Gagal menyimpan tanggal.', error: true);
       return;
     }
 
-    // Beri tahu pengguna bila notifikasi tidak akan muncul karena izin.
-    if (!NotificationService.instance.siap) {
-      _pesan('Pengingat disimpan, tetapi notifikasi tidak tersedia di perangkat ini.');
+    if (tanggal == null) {
+      _pesan('Tanggal ${tipe.label} dihapus.');
+    } else if (!NotificationService.instance.siap) {
+      _pesan('Tanggal disimpan. Notifikasi tidak tersedia di perangkat ini.');
     } else if (!await NotificationService.instance.izinAktif()) {
-      _pesan('Pengingat disimpan. Aktifkan izin notifikasi agar pengingat muncul.');
+      _pesan('Tanggal disimpan. Aktifkan izin notifikasi agar pengingat muncul.');
     } else {
-      _pesan('Pengingat ${reminder.type.label} disimpan.');
+      _pesan('Pengingat ${tipe.label} disimpan.');
     }
-  }
-
-  Future<void> _hapus(TaxType tipe) async {
-    final bool berhasil = await context.read<TaxProvider>().deleteReminder(tipe);
-    if (!mounted) return;
-    _pesan(
-      berhasil ? 'Pengingat ${tipe.label} dihapus.' : 'Gagal menghapus pengingat.',
-      error: !berhasil,
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final TaxProvider provider = context.watch<TaxProvider>();
     final ThemeData theme = Theme.of(context);
+    final Vehicle kendaraan = context.watch<VehicleProvider>().vehicleById(widget.vehicle.id!) ??
+        widget.vehicle;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Pajak & STNK')),
       body: SafeArea(
-        child: provider.loading
-            ? const Center(child: CircularProgressIndicator())
-            : ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                children: <Widget>[
-                  Text(
-                    'Atur tanggal jatuh tempo pajak tahunan dan STNK 5 tahunan. '
-                    'Aplikasi akan mengingatkan 30 hari dan 7 hari sebelumnya.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ...TaxType.values.map(
-                    (TaxType tipe) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _KartuPajak(
-                        // Key ikut berubah saat data berubah supaya draft
-                        // (tanggal & switch) ikut diperbarui dari database.
-                        key: ValueKey<String>(
-                          '${tipe.value}-${provider.reminderFor(tipe)?.dueDate.toIso8601String() ?? 'kosong'}',
-                        ),
-                        tipe: tipe,
-                        vehicleId: widget.vehicle.id!,
-                        reminder: provider.reminderFor(tipe),
-                        onPilihTanggal: _pilihTanggal,
-                        onSimpan: _simpan,
-                        onHapus: () => _hapus(tipe),
-                      ),
-                    ),
-                  ),
-                  if (!NotificationService.instance.siap)
-                    _Catatan(
-                      ikon: Icons.notifications_off_outlined,
-                      teks:
-                          'Notifikasi lokal tidak aktif di platform ini '
-                          '(misalnya saat pratinjau di browser). Pengingat tetap '
-                          'tersimpan dan akan dijadwalkan di perangkat Android.',
-                    )
-                  else
-                    _Catatan(
-                      ikon: Icons.schedule_outlined,
-                      teks:
-                          'Pengingat dikirim pukul '
-                          '${NotificationService.jamKirim.toString().padLeft(2, '0')}.00 '
-                          'waktu ${NotificationService.zonaWaktu}.',
-                    ),
-                ],
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          children: <Widget>[
+            Text(
+              'Atur tanggal jatuh tempo pajak tahunan dan STNK 5 tahunan. '
+              'Aplikasi akan mengingatkan 30 hari dan 7 hari sebelumnya.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
+            ),
+            const SizedBox(height: 16),
+            _KartuPajak(
+              tipe: TaxType.pajakTahunan,
+              tanggal: kendaraan.taxDueDate,
+              menyimpan: _menyimpan,
+              onPilihTanggal: _pilihTanggal,
+              onSimpan: (DateTime? tanggal) => _simpan(TaxType.pajakTahunan, tanggal),
+              onHapus: () => _simpan(TaxType.pajakTahunan, null),
+            ),
+            const SizedBox(height: 12),
+            _KartuPajak(
+              tipe: TaxType.stnkLimaTahunan,
+              tanggal: kendaraan.stnkDueDate,
+              menyimpan: _menyimpan,
+              onPilihTanggal: _pilihTanggal,
+              onSimpan: (DateTime? tanggal) => _simpan(TaxType.stnkLimaTahunan, tanggal),
+              onHapus: () => _simpan(TaxType.stnkLimaTahunan, null),
+            ),
+            const SizedBox(height: 8),
+            if (!NotificationService.instance.siap)
+              _Catatan(
+                ikon: Icons.notifications_off_outlined,
+                teks: 'Notifikasi lokal tidak aktif di platform ini '
+                    '(misalnya saat pratinjau di browser). Tanggal tetap '
+                    'tersimpan dan pengingat dijadwalkan di perangkat Android.',
+              )
+            else
+              _Catatan(
+                ikon: Icons.schedule_outlined,
+                teks: 'Pengingat dikirim pukul '
+                    '${NotificationService.jamKirim.toString().padLeft(2, '0')}.00 '
+                    'waktu ${NotificationService.zonaWaktu}.',
+              ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Satu kartu pengingat untuk satu jenis dokumen.
-class _KartuPajak extends StatefulWidget {
+/// Satu kartu untuk satu jenis dokumen pajak.
+class _KartuPajak extends StatelessWidget {
   final TaxType tipe;
-  final int vehicleId;
-  final TaxReminder? reminder;
+  final DateTime? tanggal;
+  final bool menyimpan;
   final Future<DateTime?> Function(DateTime? tanggalAwal) onPilihTanggal;
-  final Future<void> Function(TaxReminder reminder) onSimpan;
+  final Future<void> Function(DateTime? tanggal) onSimpan;
   final VoidCallback onHapus;
 
   const _KartuPajak({
-    super.key,
     required this.tipe,
-    required this.vehicleId,
-    required this.reminder,
+    required this.tanggal,
+    required this.menyimpan,
     required this.onPilihTanggal,
     required this.onSimpan,
     required this.onHapus,
   });
 
   @override
-  State<_KartuPajak> createState() => _KartuPajakState();
-}
-
-class _KartuPajakState extends State<_KartuPajak> {
-  DateTime? _tanggal;
-  bool _h30 = true;
-  bool _h7 = true;
-  bool _menyimpan = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _tanggal = widget.reminder?.dueDate;
-    _h30 = widget.reminder?.notifyH30 ?? true;
-    _h7 = widget.reminder?.notifyH7 ?? true;
-  }
-
-  Future<void> _pilih() async {
-    final DateTime? hasil = await widget.onPilihTanggal(_tanggal);
-    if (hasil == null || !mounted) return;
-    setState(() => _tanggal = hasil);
-  }
-
-  Future<void> _simpan() async {
-    final DateTime? tanggal = _tanggal;
-    if (tanggal == null) return;
-
-    setState(() => _menyimpan = true);
-    await widget.onSimpan(
-      TaxReminder(
-        id: widget.reminder?.id,
-        vehicleId: widget.vehicleId,
-        type: widget.tipe,
-        dueDate: tanggal,
-        notifyH30: _h30,
-        notifyH7: _h7,
-      ),
-    );
-    if (mounted) setState(() => _menyimpan = false);
-  }
-
-  @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme scheme = theme.colorScheme;
-    final DateTime? tanggal = _tanggal;
 
     final bool adaData = tanggal != null;
-    final int? sisaHari = adaData ? daysFromToday(tanggal) : null;
+    final int? sisaHari = adaData ? daysFromToday(tanggal!) : null;
     final Color warnaStatus = sisaHari == null
         ? scheme.onSurfaceVariant
         : sisaHari < 0
@@ -231,7 +187,7 @@ class _KartuPajakState extends State<_KartuPajak> {
             Row(
               children: <Widget>[
                 Icon(
-                  widget.tipe == TaxType.pajakTahunan
+                  tipe == TaxType.pajakTahunan
                       ? Icons.account_balance_outlined
                       : Icons.assignment_outlined,
                   color: scheme.primary,
@@ -239,7 +195,7 @@ class _KartuPajakState extends State<_KartuPajak> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    widget.tipe.label,
+                    tipe.label,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -247,15 +203,20 @@ class _KartuPajakState extends State<_KartuPajak> {
                 ),
                 if (adaData)
                   IconButton(
-                    tooltip: 'Hapus pengingat',
-                    onPressed: widget.onHapus,
+                    tooltip: 'Hapus tanggal',
+                    onPressed: menyimpan ? null : onHapus,
                     icon: const Icon(Icons.delete_outline),
                   ),
               ],
             ),
             const SizedBox(height: 8),
             InkWell(
-              onTap: _pilih,
+              onTap: menyimpan
+                  ? null
+                  : () async {
+                      final DateTime? hasil = await onPilihTanggal(tanggal);
+                      if (hasil != null) await onSimpan(hasil);
+                    },
               borderRadius: BorderRadius.circular(12),
               child: Container(
                 width: double.infinity,
@@ -280,7 +241,9 @@ class _KartuPajakState extends State<_KartuPajak> {
                             ),
                           ),
                           Text(
-                            adaData ? formatTanggal(tanggal) : 'Ketuk untuk memilih tanggal',
+                            adaData
+                                ? formatTanggal(tanggal!)
+                                : 'Ketuk untuk memilih tanggal',
                             style: theme.textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -290,9 +253,7 @@ class _KartuPajakState extends State<_KartuPajak> {
                     ),
                     if (sisaHari != null)
                       Text(
-                        sisaHari < 0
-                            ? 'Lewat ${sisaHari.abs()} hari'
-                            : '$sisaHari hari lagi',
+                        sisaHari < 0 ? 'Lewat ${sisaHari.abs()} hari' : '$sisaHari hari lagi',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: warnaStatus,
                           fontWeight: FontWeight.w600,
@@ -302,34 +263,11 @@ class _KartuPajakState extends State<_KartuPajak> {
                 ),
               ),
             ),
-            const SizedBox(height: 6),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              value: _h30,
-              onChanged: (bool nilai) => setState(() => _h30 = nilai),
-              title: const Text('Ingatkan 30 hari sebelumnya (H-30)'),
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              value: _h7,
-              onChanged: (bool nilai) => setState(() => _h7 = nilai),
-              title: const Text('Ingatkan 7 hari sebelumnya (H-7)'),
-            ),
-            const SizedBox(height: 4),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: (adaData && !_menyimpan) ? _simpan : null,
-                icon: _menyimpan
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save_outlined),
-                label: const Text('Simpan Pengingat'),
+            const SizedBox(height: 8),
+            Text(
+              'Pengingat otomatis: H-30 dan H-7 sebelum jatuh tempo.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ],

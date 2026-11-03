@@ -1,34 +1,47 @@
 import 'package:flutter/foundation.dart';
 
-import '../database/database_helper.dart';
 import '../models/component_interval.dart';
 import '../models/service_record.dart';
 import '../models/vehicle.dart';
+import '../repositories/service_record_repository.dart';
+import '../repositories/vehicle_repository.dart';
+import '../utils/app_exception.dart';
+import '../utils/constants.dart';
 import '../utils/service_calculator.dart';
+import 'load_state.dart';
 
 /// Sumber kebenaran untuk riwayat servis dan status jadwal servis
 /// satu kendaraan.
 ///
-/// Alur kerjanya:
-/// 1. [loadForVehicle] mengambil daftar komponen + seluruh catatan servis
-///    kendaraan tersebut, lalu menghitung status tiap komponen.
-/// 2. UI hanya membaca hasil perhitungan yang sudah siap pakai
-///    ([statuses]), sehingga widget tidak perlu tahu rumusnya.
+/// Alur lapisannya: **Screen → Provider → Repository → Supabase**.
+/// 1. [loadForVehicle] mengambil seluruh catatan servis kendaraan dari
+///    [ServiceRecordRepository], lalu menghitung status tiap komponen
+///    (daftar komponen kini konfigurasi statis di aplikasi).
+/// 2. UI hanya membaca hasil perhitungan yang sudah siap pakai ([statuses]),
+///    sehingga widget tidak perlu tahu rumusnya.
 /// 3. Setiap penambahan/penghapusan servis otomatis memuat ulang data,
 ///    jadi angka sisa KM/hari di dashboard selalu ikut berubah.
 class ServiceProvider extends ChangeNotifier {
-  final DatabaseHelper _db = DatabaseHelper.instance;
+  ServiceProvider({
+    ServiceRecordRepository? repository,
+    VehicleRepository? vehicleRepository,
+  })  : _repository = repository ?? ServiceRecordRepository(),
+        _vehicleRepository = vehicleRepository ?? VehicleRepository();
 
-  List<ComponentInterval> _components = <ComponentInterval>[];
+  final ServiceRecordRepository _repository;
+  final VehicleRepository _vehicleRepository;
+
+  final List<ComponentInterval> _components =
+      List<ComponentInterval>.of(defaultComponentIntervals);
   List<ServiceRecord> _records = <ServiceRecord>[];
   List<ComponentServiceStatus> _statuses = <ComponentServiceStatus>[];
 
   int? _vehicleId;
   int _currentKm = 0;
-  bool _isLoading = false;
+  LoadState _state = LoadState.idle;
   String? _errorMessage;
 
-  /// Daftar komponen aktif (terurut sesuai `sort_order`).
+  /// Daftar komponen aktif (terurut sesuai `sortOrder`).
   List<ComponentInterval> get components =>
       List<ComponentInterval>.unmodifiable(_components);
 
@@ -39,7 +52,10 @@ class ServiceProvider extends ChangeNotifier {
   List<ComponentServiceStatus> get statuses =>
       List<ComponentServiceStatus>.unmodifiable(_statuses);
 
-  bool get isLoading => _isLoading;
+  /// Status pemuatan: idle / loading / success / error.
+  LoadState get state => _state;
+
+  bool get isLoading => _state == LoadState.loading;
   bool get hasRecords => _records.isNotEmpty;
 
   /// Pesan error terakhir, ditampilkan UI lewat SnackBar.
@@ -71,30 +87,33 @@ class ServiceProvider extends ChangeNotifier {
   // MEMUAT DATA
   // ---------------------------------------------------------------------------
 
-  /// Memuat komponen + riwayat servis untuk [kendaraan], lalu menghitung
-  /// status tiap komponen berdasarkan `currentKm` kendaraan.
+  /// Memuat riwayat servis untuk [kendaraan], lalu menghitung status tiap
+  /// komponen berdasarkan `currentKm` kendaraan.
   Future<void> loadForVehicle(Vehicle kendaraan) async {
     final int? id = kendaraan.id;
     if (id == null) {
       _errorMessage = 'Kendaraan belum tersimpan, tidak bisa memuat servis.';
+      _state = LoadState.error;
       notifyListeners();
       return;
     }
 
     _vehicleId = id;
     _currentKm = kendaraan.currentKm;
-    _isLoading = true;
+    _state = LoadState.loading;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _components = await _db.getComponentIntervals(onlyActive: true);
-      _records = await _db.getServiceRecordsByVehicle(id);
+      _records = await _repository.fetchByVehicle(id);
       _hitungUlangStatus();
+      _state = LoadState.success;
     } catch (e) {
-      _errorMessage = 'Gagal memuat data servis: $e';
+      _errorMessage = e is AppException ? e.pesan : 'Gagal memuat data servis.';
+      _records = <ServiceRecord>[];
+      _statuses = <ComponentServiceStatus>[];
+      _state = LoadState.error;
     } finally {
-      _isLoading = false;
       notifyListeners();
     }
   }
@@ -105,24 +124,25 @@ class ServiceProvider extends ChangeNotifier {
     final int? id = _vehicleId;
     if (id == null) return;
 
-    _isLoading = true;
+    _state = LoadState.loading;
     notifyListeners();
 
     try {
-      // KM terbaru dibaca ulang dari database agar status ikut menyesuaikan.
-      final Vehicle? kendaraan = await _db.getVehicleById(id);
+      // KM terbaru dibaca ulang dari Supabase agar status ikut menyesuaikan.
+      final Vehicle? kendaraan = await _vehicleRepository.fetchById(id);
       if (kendaraan == null) {
         _errorMessage = 'Kendaraan tidak ditemukan, mungkin sudah dihapus.';
+        _state = LoadState.error;
       } else {
         _currentKm = kendaraan.currentKm;
-        _components = await _db.getComponentIntervals(onlyActive: true);
-        _records = await _db.getServiceRecordsByVehicle(id);
+        _records = await _repository.fetchByVehicle(id);
         _hitungUlangStatus();
+        _state = LoadState.success;
       }
     } catch (e) {
-      _errorMessage = 'Gagal memuat ulang data servis: $e';
+      _errorMessage = e is AppException ? e.pesan : 'Gagal memuat ulang data servis.';
+      _state = LoadState.error;
     } finally {
-      _isLoading = false;
       notifyListeners();
     }
   }
@@ -147,20 +167,15 @@ class ServiceProvider extends ChangeNotifier {
 
     try {
       if (catatan.id == null) {
-        await _db.insertServiceRecord(catatan);
+        await _repository.create(catatan);
       } else {
-        final int terubah = await _db.updateServiceRecord(catatan);
-        if (terubah == 0) {
-          _errorMessage = 'Catatan servis tidak ditemukan, mungkin sudah dihapus.';
-          notifyListeners();
-          return false;
-        }
+        await _repository.update(catatan);
       }
 
       await _muatUlangCatatan();
       return true;
     } catch (e) {
-      _errorMessage = 'Gagal menyimpan catatan servis: $e';
+      _errorMessage = e is AppException ? e.pesan : 'Gagal menyimpan catatan servis.';
       notifyListeners();
       return false;
     }
@@ -171,17 +186,11 @@ class ServiceProvider extends ChangeNotifier {
     _errorMessage = null;
 
     try {
-      final int terhapus = await _db.deleteServiceRecord(id);
-      if (terhapus == 0) {
-        _errorMessage = 'Catatan servis tidak ditemukan, mungkin sudah dihapus.';
-        notifyListeners();
-        return false;
-      }
-
+      await _repository.delete(id);
       await _muatUlangCatatan();
       return true;
     } catch (e) {
-      _errorMessage = 'Gagal menghapus catatan servis: $e';
+      _errorMessage = e is AppException ? e.pesan : 'Gagal menghapus catatan servis.';
       notifyListeners();
       return false;
     }
@@ -192,8 +201,9 @@ class ServiceProvider extends ChangeNotifier {
   Future<void> _muatUlangCatatan() async {
     final int? id = _vehicleId;
     if (id != null) {
-      _records = await _db.getServiceRecordsByVehicle(id);
+      _records = await _repository.fetchByVehicle(id);
       _hitungUlangStatus();
+      _state = LoadState.success;
     }
     notifyListeners();
   }

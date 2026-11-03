@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/vehicle.dart';
 import '../../providers/vehicle_provider.dart';
+import '../../services/supabase_service.dart';
 import '../../utils/input_formatters.dart';
 import '../../utils/validators.dart';
 
@@ -76,11 +77,15 @@ class _VehicleFormScreenState extends State<VehicleFormScreen> {
     final VehicleProvider provider = context.read<VehicleProvider>();
     final Vehicle data = Vehicle(
       id: widget.vehicle?.id,
+      // Pemilik data: selama belum ada login, dipakai DEMO_USER_ID dari .env.
+      userId: widget.vehicle?.userId ?? SupabaseService.instance.demoUserId,
       brand: _brandController.text.trim(),
       model: _modelController.text.trim(),
       year: int.parse(_yearController.text.trim()),
       plateNumber: _plateController.text.trim().toUpperCase(),
       currentKm: int.parse(_kmController.text.trim()),
+      taxDueDate: widget.vehicle?.taxDueDate,
+      stnkDueDate: widget.vehicle?.stnkDueDate,
       createdAt: widget.vehicle?.createdAt ?? DateTime.now(),
     );
 

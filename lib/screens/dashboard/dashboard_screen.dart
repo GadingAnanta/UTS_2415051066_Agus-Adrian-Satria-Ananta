@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../database/database_helper.dart';
-import '../../models/tax_reminder.dart';
 import '../../models/vehicle.dart';
 import '../../providers/service_provider.dart';
 import '../../providers/vehicle_provider.dart';
@@ -64,13 +62,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         statuses: context.read<ServiceProvider>().statuses,
       );
 
-      final List<TaxReminder> pajak =
-          await DatabaseHelper.instance.getTaxRemindersByVehicle(kendaraan.id!);
-
-      await NotificationService.instance.syncTaxReminders(
-        vehicle: kendaraan,
-        reminders: pajak,
-      );
+      // Tanggal pajak & STNK kini tersimpan pada objek kendaraan.
+      await NotificationService.instance.syncTaxReminders(kendaraan);
     } catch (e) {
       debugPrint('Gagal menyinkronkan notifikasi: $e');
     }
