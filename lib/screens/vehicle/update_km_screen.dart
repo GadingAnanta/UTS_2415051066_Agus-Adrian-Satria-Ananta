@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/vehicle.dart';
 import '../../providers/vehicle_provider.dart';
+import '../../utils/feedback.dart';
 import '../../utils/formatters.dart';
 import '../../utils/validators.dart';
 
@@ -51,11 +52,10 @@ class _UpdateKmScreenState extends State<UpdateKmScreen> {
     if (berhasil) {
       Navigator.of(context).pop(true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(provider.errorMessage ?? 'Gagal memperbarui kilometer.'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
+      tampilkanPesan(
+        context,
+        provider.errorMessage ?? 'Gagal memperbarui kilometer.',
+        error: true,
       );
     }
   }

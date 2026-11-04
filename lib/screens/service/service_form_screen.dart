@@ -8,6 +8,7 @@ import '../../models/vehicle.dart';
 import '../../providers/service_provider.dart';
 import '../../providers/vehicle_provider.dart';
 import '../../utils/constants.dart';
+import '../../utils/feedback.dart';
 import '../../utils/formatters.dart';
 import '../../utils/validators.dart';
 
@@ -170,11 +171,10 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
     if (berhasil) {
       Navigator.of(context).pop(true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(serviceProvider.errorMessage ?? 'Gagal menyimpan catatan servis.'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
+      tampilkanPesan(
+        context,
+        serviceProvider.errorMessage ?? 'Gagal menyimpan catatan servis.',
+        error: true,
       );
     }
   }

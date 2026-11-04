@@ -5,6 +5,7 @@ import '../models/service_record.dart';
 import '../models/vehicle.dart';
 import '../repositories/service_record_repository.dart';
 import '../repositories/vehicle_repository.dart';
+import '../services/notification_service.dart';
 import '../utils/app_exception.dart';
 import '../utils/constants.dart';
 import '../utils/service_calculator.dart';
@@ -138,6 +139,16 @@ class ServiceProvider extends ChangeNotifier {
         _records = await _repository.fetchByVehicle(id);
         _hitungUlangStatus();
         _state = LoadState.success;
+
+        // Jadwal pengingat servis ikut disusun ulang memakai data terbaru.
+        try {
+          await NotificationService.instance.syncServiceReminders(
+            vehicle: kendaraan,
+            statuses: _statuses,
+          );
+        } catch (e) {
+          debugPrint('Gagal menyinkronkan pengingat servis: $e');
+        }
       }
     } catch (e) {
       _errorMessage = e is AppException ? e.pesan : 'Gagal memuat ulang data servis.';
@@ -204,8 +215,31 @@ class ServiceProvider extends ChangeNotifier {
       _records = await _repository.fetchByVehicle(id);
       _hitungUlangStatus();
       _state = LoadState.success;
+
+      // Tanggal servis berikutnya berubah → jadwal pengingat ikut diperbarui.
+      await _sinkronPengingatServis(id);
     }
     notifyListeners();
+  }
+
+  /// Menyusun ulang pengingat servis berbasis waktu untuk kendaraan aktif.
+  ///
+  /// Kendaraan diambil ulang dari Supabase supaya nama, plat, dan kilometer
+  /// yang dipakai di isi notifikasi selalu data terbaru. Kegagalan
+  /// penjadwalan tidak boleh menggagalkan operasi CRUD, jadi error hanya
+  /// dicatat di console.
+  Future<void> _sinkronPengingatServis(int vehicleId) async {
+    try {
+      final Vehicle? kendaraan = await _vehicleRepository.fetchById(vehicleId);
+      if (kendaraan == null) return;
+
+      await NotificationService.instance.syncServiceReminders(
+        vehicle: kendaraan,
+        statuses: _statuses,
+      );
+    } catch (e) {
+      debugPrint('Gagal menyinkronkan pengingat servis: $e');
+    }
   }
 
   // ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@ import '../../providers/service_provider.dart';
 import '../../providers/vehicle_provider.dart';
 import '../../services/notification_service.dart';
 import '../../utils/app_theme.dart';
+import '../../utils/feedback.dart';
 import '../../utils/formatters.dart';
 import '../../utils/service_calculator.dart';
 import '../../widgets/component_status_card.dart';
@@ -169,12 +170,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _tampilkanPesan(String pesan, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(pesan),
-        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
-      ),
-    );
+    tampilkanPesan(context, pesan, error: isError);
   }
 
   @override

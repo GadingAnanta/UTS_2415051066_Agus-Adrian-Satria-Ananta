@@ -5,6 +5,7 @@ import '../../models/tax_reminder.dart';
 import '../../models/vehicle.dart';
 import '../../providers/vehicle_provider.dart';
 import '../../services/notification_service.dart';
+import '../../utils/feedback.dart';
 import '../../utils/formatters.dart';
 
 /// Halaman pengaturan tanggal jatuh tempo pajak tahunan & STNK 5 tahunan.
@@ -33,12 +34,7 @@ class _TaxReminderScreenState extends State<TaxReminderScreen> {
   }
 
   void _pesan(String teks, {bool error = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(teks),
-        backgroundColor: error ? Theme.of(context).colorScheme.error : null,
-      ),
-    );
+    tampilkanPesan(context, teks, error: error);
   }
 
   Future<DateTime?> _pilihTanggal(DateTime? tanggalAwal) async {
