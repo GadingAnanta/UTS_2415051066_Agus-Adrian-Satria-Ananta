@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../models/vehicle.dart';
 import '../../providers/vehicle_provider.dart';
 import '../../services/supabase_service.dart';
+import '../../utils/feedback.dart';
+import '../../utils/formatters.dart';
 import '../../utils/input_formatters.dart';
 import '../../utils/validators.dart';
 
@@ -36,6 +38,11 @@ class _VehicleFormScreenState extends State<VehicleFormScreen> {
 
   bool _isSaving = false;
 
+  /// Tanggal jatuh tempo pajak & STNK. Boleh kosong (diatur nanti dari
+  /// halaman Pajak & STNK), tetapi bisa langsung diisi saat menambah motor.
+  DateTime? _taxDue;
+  DateTime? _stnkDue;
+
   bool get _isEdit => widget.vehicle != null;
 
   @override
@@ -52,6 +59,8 @@ class _VehicleFormScreenState extends State<VehicleFormScreen> {
     _kmController = TextEditingController(
       text: kendaraan == null ? '' : kendaraan.currentKm.toString(),
     );
+    _taxDue = kendaraan?.taxDueDate;
+    _stnkDue = kendaraan?.stnkDueDate;
   }
 
   @override
@@ -62,6 +71,34 @@ class _VehicleFormScreenState extends State<VehicleFormScreen> {
     _plateController.dispose();
     _kmController.dispose();
     super.dispose();
+  }
+
+  /// Menampilkan pemilih tanggal untuk pajak tahunan atau STNK.
+  Future<void> _pilihTanggal({required bool pajak}) async {
+    final DateTime hariIni = DateTime.now();
+    final DateTime? awal = pajak ? _taxDue : _stnkDue;
+
+    final DateTime? dipilih = await showDatePicker(
+      context: context,
+      initialDate: awal ?? hariIni.add(const Duration(days: 30)),
+      // Tanggal lampau diizinkan untuk mencatat pajak yang sudah terlewat.
+      firstDate: DateTime(hariIni.year - 5),
+      lastDate: DateTime(hariIni.year + 10, 12, 31),
+      helpText: pajak ? 'Pilih jatuh tempo pajak' : 'Pilih jatuh tempo STNK',
+      cancelText: 'Batal',
+      confirmText: 'Pilih',
+      locale: const Locale('id', 'ID'),
+    );
+
+    if (dipilih == null || !mounted) return;
+
+    setState(() {
+      if (pajak) {
+        _taxDue = dipilih;
+      } else {
+        _stnkDue = dipilih;
+      }
+    });
   }
 
   Future<void> _simpan() async {
@@ -84,8 +121,8 @@ class _VehicleFormScreenState extends State<VehicleFormScreen> {
       year: int.parse(_yearController.text.trim()),
       plateNumber: _plateController.text.trim().toUpperCase(),
       currentKm: int.parse(_kmController.text.trim()),
-      taxDueDate: widget.vehicle?.taxDueDate,
-      stnkDueDate: widget.vehicle?.stnkDueDate,
+      taxDueDate: _taxDue,
+      stnkDueDate: _stnkDue,
       createdAt: widget.vehicle?.createdAt ?? DateTime.now(),
     );
 
@@ -97,11 +134,10 @@ class _VehicleFormScreenState extends State<VehicleFormScreen> {
     if (berhasil) {
       Navigator.of(context).pop(true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(provider.errorMessage ?? 'Gagal menyimpan kendaraan.'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
+      tampilkanPesan(
+        context,
+        provider.errorMessage ?? 'Gagal menyimpan kendaraan.',
+        error: true,
       );
     }
   }
@@ -205,6 +241,37 @@ class _VehicleFormScreenState extends State<VehicleFormScreen> {
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
               ),
+              const SizedBox(height: 24),
+
+              // --- Pengingat pajak (opsional, bisa diubah kapan saja) ---
+              const _SectionLabel(
+                text: 'Pengingat pajak (opsional)',
+                icon: Icons.notifications_active_outlined,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Isi tanggal jatuh tempo supaya aplikasi mengingatkan H-30 dan H-7. '
+                'Boleh dikosongkan dan diatur nanti dari halaman Pajak & STNK.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              _PemilihTanggal(
+                label: 'Jatuh tempo pajak tahunan',
+                ikon: Icons.account_balance_outlined,
+                tanggal: _taxDue,
+                onPilih: () => _pilihTanggal(pajak: true),
+                onHapus: () => setState(() => _taxDue = null),
+              ),
+              const SizedBox(height: 12),
+              _PemilihTanggal(
+                label: 'Jatuh tempo STNK 5 tahunan',
+                ikon: Icons.assignment_outlined,
+                tanggal: _stnkDue,
+                onPilih: () => _pilihTanggal(pajak: false),
+                onHapus: () => setState(() => _stnkDue = null),
+              ),
             ],
           ),
         ),
@@ -251,6 +318,52 @@ class _SectionLabel extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Satu baris pemilih tanggal (pajak / STNK) yang bisa dikosongkan.
+class _PemilihTanggal extends StatelessWidget {
+  final String label;
+  final IconData ikon;
+  final DateTime? tanggal;
+  final VoidCallback onPilih;
+  final VoidCallback onHapus;
+
+  const _PemilihTanggal({
+    required this.label,
+    required this.ikon,
+    required this.tanggal,
+    required this.onPilih,
+    required this.onHapus,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return InkWell(
+      onTap: onPilih,
+      borderRadius: BorderRadius.circular(12),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(ikon),
+          suffixIcon: tanggal == null
+              ? const Icon(Icons.arrow_drop_down)
+              : IconButton(
+                  tooltip: 'Kosongkan tanggal',
+                  icon: const Icon(Icons.close),
+                  onPressed: onHapus,
+                ),
+        ),
+        child: Text(
+          tanggal == null ? 'Belum diatur' : formatTanggal(tanggal!),
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: tanggal == null ? theme.colorScheme.onSurfaceVariant : null,
+          ),
+        ),
+      ),
     );
   }
 }
