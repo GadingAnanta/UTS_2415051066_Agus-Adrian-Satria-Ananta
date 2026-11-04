@@ -71,6 +71,36 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
     _pesan('Perubahan kendaraan berhasil disimpan.');
   }
 
+  /// Konfirmasi lalu hapus kendaraan; kembali ke daftar bila berhasil.
+  Future<void> _hapusKendaraan() async {
+    final Vehicle kendaraan = _kendaraanTerkini();
+
+    final bool setuju = await konfirmasiHapus(
+      context,
+      judul: 'Hapus kendaraan?',
+      pesan: 'Seluruh riwayat servis dan pengingat pajak untuk '
+          '${kendaraan.displayName} (${kendaraan.plateNumber}) ikut terhapus '
+          'dan tidak bisa dikembalikan.',
+    );
+
+    if (!setuju || !mounted) return;
+
+    final VehicleProvider provider = context.read<VehicleProvider>();
+    final bool berhasil = await provider.deleteVehicle(kendaraan.id!);
+
+    if (!mounted) return;
+
+    if (!berhasil) {
+      _pesan(provider.errorMessage ?? 'Gagal menghapus kendaraan.', error: true);
+      return;
+    }
+
+    // SnackBar tetap tampil setelah halaman ini ditutup karena messenger
+    // berada di atas Navigator.
+    _pesan('Kendaraan "${kendaraan.displayName}" dihapus.');
+    Navigator.of(context).pop();
+  }
+
   Future<void> _bukaDashboard() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
@@ -136,6 +166,11 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
             tooltip: 'Edit kendaraan',
             onPressed: _editKendaraan,
             icon: const Icon(Icons.edit_outlined),
+          ),
+          IconButton(
+            tooltip: 'Hapus kendaraan',
+            onPressed: _hapusKendaraan,
+            icon: const Icon(Icons.delete_outline),
           ),
           IconButton(
             tooltip: 'Muat ulang riwayat',

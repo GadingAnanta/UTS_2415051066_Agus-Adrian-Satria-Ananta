@@ -5,6 +5,7 @@ import '../../models/component_interval.dart';
 import '../../models/service_record.dart';
 import '../../models/vehicle.dart';
 import '../../providers/service_provider.dart';
+import '../../utils/feedback.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/service_record_tile.dart';
@@ -77,30 +78,14 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
     final ServiceProvider provider = context.read<ServiceProvider>();
     final String nama = provider.componentName(catatan.componentKey);
 
-    final bool? setuju = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Hapus catatan servis?'),
-          content: Text(
-            'Catatan $nama tanggal ${formatTanggal(catatan.serviceDate)} '
-            '(${formatRupiah(catatan.cost)}) akan dihapus permanen.',
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Batal'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Hapus'),
-            ),
-          ],
-        );
-      },
+    final bool setuju = await konfirmasiHapus(
+      context,
+      judul: 'Hapus catatan servis?',
+      pesan: 'Catatan $nama tanggal ${formatTanggal(catatan.serviceDate)} '
+          '(${formatRupiah(catatan.cost)}) akan dihapus permanen.',
     );
 
-    if (setuju != true || !mounted) return;
+    if (!setuju || !mounted) return;
 
     final bool berhasil = await provider.deleteRecord(catatan.id!);
     if (!mounted) return;
@@ -114,12 +99,7 @@ class _ServiceHistoryScreenState extends State<ServiceHistoryScreen> {
   }
 
   void _tampilkanPesan(String pesan, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(pesan),
-        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
-      ),
-    );
+    tampilkanPesan(context, pesan, error: isError);
   }
 
   @override
