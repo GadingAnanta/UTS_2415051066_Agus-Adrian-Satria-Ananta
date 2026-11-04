@@ -5,7 +5,8 @@ import '../../models/vehicle.dart';
 import '../../providers/vehicle_provider.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/vehicle_card.dart';
-import '../dashboard/dashboard_screen.dart';
+import '../tips/tips_screen.dart';
+import 'vehicle_detail_screen.dart';
 import 'vehicle_form_screen.dart';
 
 /// Halaman daftar kendaraan: melihat, menambah, mengedit, dan menghapus motor.
@@ -30,12 +31,20 @@ class VehicleListScreen extends StatelessWidget {
     );
   }
 
-  /// Buka dashboard kendaraan: ringkasan KM + status servis per komponen.
-  Future<void> _bukaDashboard(BuildContext context, Vehicle vehicle) async {
+  /// Buka detail kendaraan. Objek [vehicle] dikirim langsung dari daftar
+  /// (passing data), lalu halaman detail memuat riwayat servisnya.
+  Future<void> _bukaDetail(BuildContext context, Vehicle vehicle) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => DashboardScreen(vehicle: vehicle),
+        builder: (_) => VehicleDetailScreen(vehicle: vehicle),
       ),
+    );
+  }
+
+  /// Buka halaman Katalog & Tips (data dari REST API).
+  Future<void> _bukaTips(BuildContext context) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const TipsScreen()),
     );
   }
 
@@ -99,6 +108,11 @@ class VehicleListScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Kendaraan Saya'),
         actions: <Widget>[
+          IconButton(
+            tooltip: 'Katalog & Tips',
+            onPressed: () => _bukaTips(context),
+            icon: const Icon(Icons.menu_book_outlined),
+          ),
           IconButton(
             tooltip: 'Muat ulang',
             onPressed: () => context.read<VehicleProvider>().loadVehicles(),
@@ -168,8 +182,8 @@ class VehicleListScreen extends StatelessWidget {
                   final Vehicle vehicle = provider.vehicles[index - 1];
                   return VehicleCard(
                     vehicle: vehicle,
-                    // Ketuk kartu = buka dashboard kendaraan.
-                    onTap: () => _bukaDashboard(context, vehicle),
+                    // Ketuk kartu = buka detail kendaraan (passing data).
+                    onTap: () => _bukaDetail(context, vehicle),
                     onEdit: () => _openForm(context, vehicle: vehicle),
                     onDelete: () => _confirmDelete(context, vehicle),
                   );
