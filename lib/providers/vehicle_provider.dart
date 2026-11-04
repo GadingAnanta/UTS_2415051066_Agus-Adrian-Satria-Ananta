@@ -5,6 +5,7 @@ import '../repositories/vehicle_repository.dart';
 import '../services/notification_service.dart';
 import '../services/supabase_service.dart';
 import '../utils/app_exception.dart';
+import '../utils/vehicle_filter.dart';
 import 'load_state.dart';
 
 /// Sumber kebenaran (single source of truth) untuk data kendaraan.
@@ -25,6 +26,12 @@ class VehicleProvider extends ChangeNotifier {
   /// State bersama (shared state): kendaraan yang sedang dipilih/dibuka.
   /// Dipakai dashboard & daftar supaya keduanya menunjuk kendaraan yang sama.
   int? _selectedVehicleId;
+
+  /// State bersama (shared state): kata kunci pencarian pada daftar.
+  String _query = '';
+
+  /// State bersama (shared state): filter aktif pada daftar.
+  VehicleFilter _filter = VehicleFilter.semua;
 
   /// Daftar kendaraan (tidak bisa diubah dari luar).
   List<Vehicle> get vehicles => List<Vehicle>.unmodifiable(_vehicles);
@@ -54,6 +61,47 @@ class VehicleProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- State bersama: pencarian & filter ---
+
+  /// Kata kunci pencarian yang sedang aktif (huruf asli dari pengguna).
+  String get query => _query;
+
+  /// Filter yang sedang aktif.
+  VehicleFilter get filter => _filter;
+
+  /// True bila pengguna sedang memakai pencarian atau filter.
+  bool get hasActiveFilter =>
+      _query.trim().isNotEmpty || _filter != VehicleFilter.semua;
+
+  /// Daftar kendaraan setelah disaring pencarian + filter.
+  ///
+  /// Halaman daftar memakai getter ini, sehingga state filter tetap hidup
+  /// meskipun halaman dibuka ulang (shared state di provider).
+  List<Vehicle> get filteredVehicles =>
+      filterVehicles(_vehicles, query: _query, filter: _filter);
+
+  /// Mengubah kata kunci pencarian lalu memberi tahu UI.
+  void setQuery(String value) {
+    if (_query == value) return;
+    _query = value;
+    notifyListeners();
+  }
+
+  /// Mengubah filter aktif lalu memberi tahu UI.
+  void setFilter(VehicleFilter value) {
+    if (_filter == value) return;
+    _filter = value;
+    notifyListeners();
+  }
+
+  /// Mengembalikan pencarian & filter ke keadaan awal.
+  void resetFilter() {
+    if (!hasActiveFilter) return;
+    _query = '';
+    _filter = VehicleFilter.semua;
+    notifyListeners();
+  }
+
   /// Ambil ulang seluruh data kendaraan dari Supabase.
   Future<void> loadVehicles() async {
     _state = LoadState.loading;
@@ -74,11 +122,29 @@ class VehicleProvider extends ChangeNotifier {
       }
 
       _state = LoadState.success;
+
+      // Data berasal dari Supabase, jadi jadwal pengingat pajak/STNK disusun
+      // ulang setiap kali daftar dimuat (misalnya setelah aplikasi dibuka).
+      await _sinkronPengingatPajak();
     } catch (e) {
       _errorMessage = e is AppException ? e.pesan : 'Gagal memuat daftar kendaraan.';
       _state = LoadState.error;
     } finally {
       notifyListeners();
+    }
+  }
+
+  /// Menyusun ulang pengingat pajak & STNK untuk seluruh kendaraan.
+  ///
+  /// Kegagalan penjadwalan notifikasi tidak boleh menggagalkan pemuatan data,
+  /// jadi error-nya hanya dicatat lewat [debugPrint].
+  Future<void> _sinkronPengingatPajak() async {
+    for (final Vehicle kendaraan in _vehicles) {
+      try {
+        await NotificationService.instance.syncTaxReminders(kendaraan);
+      } catch (e) {
+        debugPrint('Gagal menyinkronkan pengingat pajak: $e');
+      }
     }
   }
 

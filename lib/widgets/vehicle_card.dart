@@ -7,6 +7,9 @@ import '../utils/formatters.dart';
 class VehicleCard extends StatelessWidget {
   final Vehicle vehicle;
   final VoidCallback onTap;
+
+  /// Tekan lama membuka menu cepat (opsional).
+  final VoidCallback? onLongPress;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -14,6 +17,7 @@ class VehicleCard extends StatelessWidget {
     super.key,
     required this.vehicle,
     required this.onTap,
+    this.onLongPress,
     required this.onEdit,
     required this.onDelete,
   });
@@ -27,6 +31,7 @@ class VehicleCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
           child: Row(
