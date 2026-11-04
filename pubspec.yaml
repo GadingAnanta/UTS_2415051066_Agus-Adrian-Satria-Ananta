@@ -69,6 +69,9 @@ dependencies:
   # Format tanggal & rupiah (locale id_ID)
   intl: ^0.20.3
 
+  # HTTP client untuk REST API (katalog & tips dari tips.json)
+  http: ^1.6.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

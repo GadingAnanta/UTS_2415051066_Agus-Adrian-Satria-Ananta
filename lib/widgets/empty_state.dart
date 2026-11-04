@@ -9,6 +9,9 @@ class EmptyState extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
+  /// Ikon tombol aksi (default: tambah). Halaman error memakai ikon ulang.
+  final IconData actionIcon;
+
   const EmptyState({
     super.key,
     required this.icon,
@@ -16,6 +19,7 @@ class EmptyState extends StatelessWidget {
     required this.message,
     this.actionLabel,
     this.onAction,
+    this.actionIcon = Icons.add,
   });
 
   @override
@@ -54,7 +58,7 @@ class EmptyState extends StatelessWidget {
               const SizedBox(height: 20),
               FilledButton.icon(
                 onPressed: onAction,
-                icon: const Icon(Icons.add),
+                icon: Icon(actionIcon),
                 label: Text(actionLabel!),
               ),
             ],

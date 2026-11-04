@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/service_provider.dart';
+import 'providers/tips_provider.dart';
 import 'providers/vehicle_provider.dart';
 import 'screens/vehicle/vehicle_list_screen.dart';
 import 'services/notification_service.dart';
@@ -48,6 +49,10 @@ class BengkelDigitalApp extends StatelessWidget {
         // Provider servis diisi saat dashboard sebuah kendaraan dibuka.
         ChangeNotifierProvider<ServiceProvider>(
           create: (_) => ServiceProvider(),
+        ),
+        // Provider katalog & tips, diisi saat halaman Tips dibuka.
+        ChangeNotifierProvider<TipsProvider>(
+          create: (_) => TipsProvider(),
         ),
       ],
       child: MaterialApp(

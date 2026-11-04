@@ -1,12 +1,276 @@
-   {
-     "tips": [
-       {
-         "id": 1,
-         "title": "Kapan ganti oli mesin?",
-         "category": "Oli",
-         "description": "Ganti tiap 2.000 km atau 2 bulan.",
-         "interval_km": 2000,
-         "interval_month": 2
-       }
-     ]
-   }
+{
+  "versi": 1,
+  "diperbarui": "2026-11-04",
+  "sumber": "Bengkel Digital - data contoh untuk UTS Pemrograman Berorientasi Objek",
+  "katalog_motor": [
+    {
+      "id": "honda-vario-160",
+      "merek": "Honda",
+      "model": "Vario 160 CBS",
+      "tahun": 2022,
+      "jenis": "Skuter Matic",
+      "kapasitas_cc": 160,
+      "transmisi": "CVT",
+      "rekomendasi_oli": "AHM MPX2 10W-30",
+      "interval_servis_km": 2000,
+      "konsumsi_bbm_km_per_liter": 45,
+      "catatan": "Gunakan oli sintetik bila sering dipakai jarak jauh."
+    },
+    {
+      "id": "honda-beat-2020",
+      "merek": "Honda",
+      "model": "BeAT Street",
+      "tahun": 2020,
+      "jenis": "Skuter Matic",
+      "kapasitas_cc": 110,
+      "transmisi": "CVT",
+      "rekomendasi_oli": "AHM MPX1 10W-30",
+      "interval_servis_km": 2000,
+      "konsumsi_bbm_km_per_liter": 50,
+      "catatan": "Cocok untuk pemakaian harian dalam kota."
+    },
+    {
+      "id": "yamaha-nmax-155",
+      "merek": "Yamaha",
+      "model": "NMAX 155 Connected",
+      "tahun": 2023,
+      "jenis": "Skuter Matic",
+      "kapasitas_cc": 155,
+      "transmisi": "CVT",
+      "rekomendasi_oli": "Yamalube Silver 10W-40",
+      "interval_servis_km": 3000,
+      "konsumsi_bbm_km_per_liter": 42,
+      "catatan": "Periksa tekanan ban setiap dua minggu."
+    },
+    {
+      "id": "yamaha-mio-m3",
+      "merek": "Yamaha",
+      "model": "Mio M3 125",
+      "tahun": 2019,
+      "jenis": "Skuter Matic",
+      "kapasitas_cc": 125,
+      "transmisi": "CVT",
+      "rekomendasi_oli": "Yamalube Matic 10W-30",
+      "interval_servis_km": 2000,
+      "konsumsi_bbm_km_per_liter": 48,
+      "catatan": "Bersihkan filter udara lebih sering bila berdebu."
+    },
+    {
+      "id": "suzuki-satria-f150",
+      "merek": "Suzuki",
+      "model": "Satria F150",
+      "tahun": 2021,
+      "jenis": "Motor Bebek",
+      "kapasitas_cc": 147,
+      "transmisi": "Manual 6 percepatan",
+      "rekomendasi_oli": "Suzuki Ecstar R5000 10W-40",
+      "interval_servis_km": 3000,
+      "konsumsi_bbm_km_per_liter": 44,
+      "catatan": "Cek ketegangan rantai setiap 1.000 km."
+    },
+    {
+      "id": "honda-supra-x-125",
+      "merek": "Honda",
+      "model": "Supra X 125 FI",
+      "tahun": 2018,
+      "jenis": "Motor Bebek",
+      "kapasitas_cc": 125,
+      "transmisi": "Manual 4 percepatan",
+      "rekomendasi_oli": "AHM MPX1 10W-30",
+      "interval_servis_km": 2000,
+      "konsumsi_bbm_km_per_liter": 52,
+      "catatan": "Motor lama: periksa kabel busi dan aki lebih sering."
+    },
+    {
+      "id": "kawasaki-ninja-250",
+      "merek": "Kawasaki",
+      "model": "Ninja 250 SL",
+      "tahun": 2022,
+      "jenis": "Motor Sport",
+      "kapasitas_cc": 249,
+      "transmisi": "Manual 6 percepatan",
+      "rekomendasi_oli": "Kawasaki Genuine Oil 10W-40",
+      "interval_servis_km": 4000,
+      "konsumsi_bbm_km_per_liter": 32,
+      "catatan": "Gunakan oli full sintetik dan cek cairan rem tiap 6 bulan."
+    },
+    {
+      "id": "honda-pcx-160",
+      "merek": "Honda",
+      "model": "PCX 160 ABS",
+      "tahun": 2023,
+      "jenis": "Skuter Matic",
+      "kapasitas_cc": 160,
+      "transmisi": "CVT",
+      "rekomendasi_oli": "AHM MPX2 10W-30",
+      "interval_servis_km": 3000,
+      "konsumsi_bbm_km_per_liter": 47,
+      "catatan": "Bersihkan area CVT setiap 8.000 km."
+    }
+  ],
+  "tips_perawatan": [
+    {
+      "id": 1,
+      "judul": "Kapan waktu yang tepat ganti oli mesin?",
+      "kategori": "Oli",
+      "ringkasan": "Oli mesin adalah komponen paling sering diganti. Ganti tiap 2.000 km atau 2 bulan, mana yang lebih dulu tercapai.",
+      "langkah": [
+        "Panaskan mesin 2-3 menit agar oli mudah mengalir.",
+        "Buka baut pembuangan oli dan tampung oli bekas.",
+        "Ganti juga filter oli bila sudah waktunya.",
+        "Isi oli baru sesuai kapasitas, lalu cek lewat dipstick."
+      ],
+      "interval_km": 2000,
+      "interval_bulan": 2
+    },
+    {
+      "id": 2,
+      "judul": "Filter udara kotor membuat motor boros",
+      "kategori": "Filter Udara",
+      "ringkasan": "Filter udara yang kotor mengurangi pasokan udara sehingga campuran bahan bakar menjadi tidak ideal.",
+      "langkah": [
+        "Buka penutup filter udara.",
+        "Bersihkan debu dengan udara bertekanan atau ganti filter baru.",
+        "Pasang kembali dengan rapat agar tidak ada udara bocor."
+      ],
+      "interval_km": 8000,
+      "interval_bulan": 6
+    },
+    {
+      "id": 3,
+      "judul": "Tanda busi sudah waktunya diganti",
+      "kategori": "Busi",
+      "ringkasan": "Mesin sulit hidup, tarikan lemah, dan konsumsi bensin naik biasanya berasal dari busi yang aus.",
+      "langkah": [
+        "Cek warna ujung busi: cokelat muda berarti normal.",
+        "Bersihkan kerak bila masih layak pakai.",
+        "Ganti busi setiap 8.000 km atau setahun sekali."
+      ],
+      "interval_km": 8000,
+      "interval_bulan": 12
+    },
+    {
+      "id": 4,
+      "judul": "Kampas rem tipis berbahaya saat hujan",
+      "kategori": "Rem",
+      "ringkasan": "Kampas rem yang sudah tipis memperpanjang jarak pengereman, terutama di jalan basah.",
+      "langkah": [
+        "Dengarkan bunyi decit saat mengerem: tanda kampas mulai habis.",
+        "Periksa ketebalan kampas minimal 2 mm.",
+        "Ganti berpasangan agar pengereman seimbang."
+      ],
+      "interval_km": 10000,
+      "interval_bulan": 12
+    },
+    {
+      "id": 5,
+      "judul": "Rawat aki agar starter tidak lemah",
+      "kategori": "Aki",
+      "ringkasan": "Aki motor matic rata-rata bertahan 2 tahun. Pemakaian jarak pendek terus-menerus membuat aki cepat lemah.",
+      "langkah": [
+        "Bersihkan terminal aki dari kerak putih.",
+        "Hindari menyalakan lampu tambahan saat mesin mati.",
+        "Ganti aki bila starter terasa berat meski sudah diisi ulang."
+      ],
+      "interval_km": null,
+      "interval_bulan": 24
+    },
+    {
+      "id": 6,
+      "judul": "Tekanan ban memengaruhi kenyamanan dan konsumsi bensin",
+      "kategori": "Ban",
+      "ringkasan": "Ban kurang angin membuat tarikan berat dan ban cepat aus di sisi samping.",
+      "langkah": [
+        "Cek tekanan ban saat ban dingin, minimal seminggu sekali.",
+        "Ikuti angka pada stiker pabrikan (biasanya 28-33 psi).",
+        "Ganti ban bila alur sudah di bawah 1,6 mm."
+      ],
+      "interval_km": 20000,
+      "interval_bulan": 24
+    },
+    {
+      "id": 7,
+      "judul": "Servis CVT berkala bikin tarikan halus",
+      "kategori": "Rantai / Belt",
+      "ringkasan": "Pada motor matic, debu dan gesekan membuat belt cepat aus sehingga motor bergetar saat mulai jalan.",
+      "langkah": [
+        "Bersihkan rumah CVT setiap 8.000 km.",
+        "Periksa lebar belt dan kondisi roller.",
+        "Ganti belt setiap 20.000 km atau bila sudah retak."
+      ],
+      "interval_km": 20000,
+      "interval_bulan": 24
+    },
+    {
+      "id": 8,
+      "judul": "Jangan lupa pajak tahunan dan perpanjangan STNK",
+      "kategori": "Administrasi",
+      "ringkasan": "Pajak tahunan dan perpanjangan STNK 5 tahunan punya tenggat berbeda, keduanya wajib diingat.",
+      "langkah": [
+        "Catat tanggal jatuh tempo pajak pada halaman Pajak & STNK.",
+        "Siapkan STNK, BPKB, dan KTP saat membayar pajak.",
+        "Perpanjangan STNK 5 tahunan memerlukan cek fisik kendaraan."
+      ],
+      "interval_km": null,
+      "interval_bulan": 12
+    }
+  ],
+  "interval_servis": [
+    {
+      "komponen": "oli_mesin",
+      "nama": "Oli Mesin",
+      "interval_km": 2000,
+      "interval_bulan": 2,
+      "keterangan": "Interval terpendek; patokan utama perawatan rutin."
+    },
+    {
+      "komponen": "oli_gearbox",
+      "nama": "Oli Gearbox",
+      "interval_km": 8000,
+      "interval_bulan": 6,
+      "keterangan": "Khusus motor matic; gunakan oli gardan sesuai spesifikasi."
+    },
+    {
+      "komponen": "filter_udara",
+      "nama": "Filter Udara",
+      "interval_km": 8000,
+      "interval_bulan": 6,
+      "keterangan": "Lebih sering dibersihkan bila sering melewati jalan berdebu."
+    },
+    {
+      "komponen": "busi",
+      "nama": "Busi",
+      "interval_km": 8000,
+      "interval_bulan": 12,
+      "keterangan": "Gunakan busi dengan ukuran dan tipe sesuai buku manual."
+    },
+    {
+      "komponen": "kampas_rem",
+      "nama": "Kampas Rem",
+      "interval_km": 10000,
+      "interval_bulan": 12,
+      "keterangan": "Periksa lebih awal bila sering berkendara di jalan menurun."
+    },
+    {
+      "komponen": "rantai_belt",
+      "nama": "Rantai / Belt",
+      "interval_km": 20000,
+      "interval_bulan": 24,
+      "keterangan": "Motor manual: cek ketegangan rantai. Matic: cek kondisi belt."
+    },
+    {
+      "komponen": "aki",
+      "nama": "Aki",
+      "interval_km": null,
+      "interval_bulan": 24,
+      "keterangan": "Tidak memakai patokan kilometer, hanya umur pemakaian."
+    },
+    {
+      "komponen": "ban",
+      "nama": "Ban",
+      "interval_km": 20000,
+      "interval_bulan": 24,
+      "keterangan": "Ganti lebih awal bila alur ban sudah tipis atau retak."
+    }
+  ]
+}
