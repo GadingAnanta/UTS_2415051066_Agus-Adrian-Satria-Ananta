@@ -82,6 +82,22 @@ create policy "anon_all_service_records" on public.service_records
   with check (true);
 
 -- ------------------------------------------------------------
+-- Hak akses (GRANT) untuk role anon
+-- ------------------------------------------------------------
+-- RLS hanya membatasi BARIS. Role anon juga harus punya izin pada
+-- tabel & sequence-nya, karena tabel yang dibuat lewat SQL Editor
+-- dimiliki oleh `postgres` (bukan lewat Table Editor yang otomatis
+-- memberi grant). Tanpa blok ini muncul error:
+--   42501 permission denied for table vehicles
+grant usage on schema public to anon;
+
+grant select, insert, update, delete on public.vehicles        to anon;
+grant select, insert, update, delete on public.service_records to anon;
+
+-- Kolom `id` memakai identity (sequence), jadi insert butuh akses sequence.
+grant usage, select on all sequences in schema public to anon;
+
+-- ------------------------------------------------------------
 -- Data contoh (opsional, boleh dihapus)
 -- user_id harus sama dengan DEMO_USER_ID pada file .env
 -- ------------------------------------------------------------
