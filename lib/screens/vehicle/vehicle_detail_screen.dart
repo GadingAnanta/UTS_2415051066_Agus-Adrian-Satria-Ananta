@@ -5,10 +5,12 @@ import '../../models/service_record.dart';
 import '../../models/vehicle.dart';
 import '../../providers/service_provider.dart';
 import '../../providers/vehicle_provider.dart';
+import '../../utils/feedback.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/service_record_tile.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../service/service_form_screen.dart';
+import 'vehicle_form_screen.dart';
 
 /// Halaman detail satu kendaraan.
 ///
@@ -54,12 +56,19 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
   }
 
   void _pesan(String teks, {bool error = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(teks),
-        backgroundColor: error ? Theme.of(context).colorScheme.error : null,
+    tampilkanPesan(context, teks, error: error);
+  }
+
+  /// Buka form edit dengan data kendaraan yang sedang tampil (sudah terisi).
+  Future<void> _editKendaraan() async {
+    final bool? berhasil = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => VehicleFormScreen(vehicle: _kendaraanTerkini()),
       ),
     );
+
+    if (!mounted || berhasil != true) return;
+    _pesan('Perubahan kendaraan berhasil disimpan.');
   }
 
   Future<void> _bukaDashboard() async {
@@ -88,28 +97,14 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
   }
 
   Future<void> _hapusServis(ServiceRecord record) async {
-    final bool? setuju = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialogContext) => AlertDialog(
-        title: const Text('Hapus catatan servis?'),
-        content: Text(
-          'Catatan servis tanggal ${formatTanggal(record.serviceDate)} akan '
+    final bool setuju = await konfirmasiHapus(
+      context,
+      judul: 'Hapus catatan servis?',
+      pesan: 'Catatan servis tanggal ${formatTanggal(record.serviceDate)} akan '
           'dihapus dan status komponen ikut dihitung ulang.',
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
     );
 
-    if (setuju != true || !mounted) return;
+    if (!setuju || !mounted) return;
 
     final ServiceProvider provider = context.read<ServiceProvider>();
     final bool berhasil = await provider.deleteRecord(record.id!);
@@ -137,6 +132,11 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
       appBar: AppBar(
         title: const Text('Detail Kendaraan'),
         actions: <Widget>[
+          IconButton(
+            tooltip: 'Edit kendaraan',
+            onPressed: _editKendaraan,
+            icon: const Icon(Icons.edit_outlined),
+          ),
           IconButton(
             tooltip: 'Muat ulang riwayat',
             onPressed: () => service.loadForVehicle(kendaraan),
