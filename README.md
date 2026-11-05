@@ -183,15 +183,13 @@ menjadi gambar biasa.
 Contoh pemakaian setelah gambar tersedia:
 
 ```markdown
-![Beranda](docs/screenshots/01-beranda.png)
+[Beranda](docs/screenshots/beranda.PNG)
+[Dasboard](docs/screenshots/dasboard motor.PNG)
+[Detail kendaraan](docs/screenshots/detail kendaraan.PNG)
+[Katalog & tips](docs/screenshots/katalog.PNG)
 ```
 
-<!--
-![Beranda](docs/screenshots/01-beranda.png)
-![Daftar kendaraan](docs/screenshots/02-kendaraan-list.png)
-![Detail kendaraan](docs/screenshots/04-detail-kendaraan.png)
-![Katalog & tips](docs/screenshots/10-katalog-tips.png)
--->
+
 
 ## Cara Menjalankan
 

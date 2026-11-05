@@ -6,7 +6,7 @@
     {
       "id": "honda-vario-160",
       "merek": "Honda",
-      "model": "Vario 160 CBS",
+      "model": "Vario 160",
       "tahun": 2022,
       "jenis": "Skuter Matic",
       "kapasitas_cc": 160,
@@ -19,7 +19,7 @@
     {
       "id": "honda-beat-2020",
       "merek": "Honda",
-      "model": "BeAT Street",
+      "model": "Beat",
       "tahun": 2020,
       "jenis": "Skuter Matic",
       "kapasitas_cc": 110,
@@ -32,7 +32,7 @@
     {
       "id": "yamaha-nmax-155",
       "merek": "Yamaha",
-      "model": "NMAX 155 Connected",
+      "model": "NMAX 155 ",
       "tahun": 2023,
       "jenis": "Skuter Matic",
       "kapasitas_cc": 155,
