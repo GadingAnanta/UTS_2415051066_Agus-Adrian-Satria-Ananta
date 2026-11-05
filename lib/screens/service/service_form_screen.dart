@@ -344,16 +344,20 @@ class _ServiceFormScreenState extends State<ServiceFormScreen> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: FilledButton.icon(
-            onPressed: _isSaving || komponen.isEmpty ? null : _simpan,
-            icon: _isSaving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save_outlined),
-            label: Text(_isSaving ? 'Menyimpan...' : 'Simpan Catatan Servis'),
+          child: SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _isSaving || komponen.isEmpty ? null : _simpan,
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save_outlined),
+              label:
+                  Text(_isSaving ? 'Menyimpan...' : 'Simpan Catatan Servis'),
+            ),
           ),
         ),
       ),

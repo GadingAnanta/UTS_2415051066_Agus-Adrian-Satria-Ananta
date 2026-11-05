@@ -4,6 +4,7 @@ import '../utils/app_theme.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../utils/service_calculator.dart';
+import 'status_chip.dart';
 
 /// Kartu status satu komponen di dashboard.
 ///
@@ -73,7 +74,13 @@ class ComponentStatusCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  _StatusBadge(status: status.status, color: warnaStatus),
+                  Flexible(
+                    child: StatusChip(
+                      label: status.status.label,
+                      color: warnaStatus,
+                      kecil: true,
+                    ),
+                  ),
                 ],
               ),
 
@@ -147,43 +154,6 @@ class ComponentStatusCard extends StatelessWidget {
       teks.write(' · jadwal berikutnya ${formatTanggalPendek(status.nextServiceDate!)}');
     }
     return teks.toString();
-  }
-}
-
-/// Badge kecil berisi titik warna + label status.
-class _StatusBadge extends StatelessWidget {
-  final ServiceStatus status;
-  final Color color;
-
-  const _StatusBadge({required this.status, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            status.label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

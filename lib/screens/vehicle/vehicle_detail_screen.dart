@@ -7,7 +7,11 @@ import '../../providers/service_provider.dart';
 import '../../providers/vehicle_provider.dart';
 import '../../utils/feedback.dart';
 import '../../utils/formatters.dart';
+import '../../widgets/info_banner.dart';
+import '../../widgets/section_header.dart';
 import '../../widgets/service_record_tile.dart';
+import '../../widgets/tax_due_card.dart';
+import '../../widgets/vehicle_summary_card.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../service/service_form_screen.dart';
 import 'vehicle_form_screen.dart';
@@ -191,9 +195,9 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
             physics: const AlwaysScrollableScrollPhysics(),
             children: <Widget>[
-              _KartuIdentitas(vehicle: kendaraan),
+              VehicleSummaryCard(vehicle: kendaraan),
               const SizedBox(height: 12),
-              _KartuPajak(vehicle: kendaraan),
+              TaxDueCard(vehicle: kendaraan),
               const SizedBox(height: 12),
               Row(
                 children: <Widget>[
@@ -217,29 +221,24 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
               const SizedBox(height: 20),
 
               // --- Ringkasan riwayat ---
-              Row(
-                children: <Widget>[
-                  Icon(Icons.receipt_long_outlined, size: 20, color: theme.colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Riwayat Servis',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+              SectionHeader(
+                icon: Icons.receipt_long_outlined,
+                title: 'Riwayat Servis',
+                subtitle: '${riwayat.length} catatan servis',
+                trailing: riwayat.isEmpty
+                    ? null
+                    : Text(
+                        formatRupiah(
+                          riwayat.fold<int>(
+                            0,
+                            (int total, ServiceRecord r) => total + r.cost,
+                          ),
+                        ),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.primary,
+                        ),
                       ),
-                    ),
-                  ),
-                  if (riwayat.isNotEmpty)
-                    Text(
-                      formatRupiah(
-                        riwayat.fold<int>(0, (int total, ServiceRecord r) => total + r.cost),
-                      ),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                ],
               ),
               const SizedBox(height: 10),
 
@@ -249,17 +248,22 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                   padding: EdgeInsets.symmetric(vertical: 40),
                   child: Center(child: CircularProgressIndicator()),
                 )
-              else if (dataKendaraanIni && service.errorMessage != null && riwayat.isEmpty)
-                _KotakPesan(
+              else if (dataKendaraanIni &&
+                  service.errorMessage != null &&
+                  riwayat.isEmpty)
+                InfoBanner(
+                  tone: BannerTone.bahaya,
+                  judul: 'Riwayat gagal dimuat',
                   pesan: service.errorMessage!,
-                  aksiLabel: 'Coba lagi',
-                  onAksi: () => service.loadForVehicle(kendaraan),
+                  aksi: TextButton(
+                    onPressed: () => service.loadForVehicle(kendaraan),
+                    child: const Text('Coba lagi'),
+                  ),
                 )
               else if (riwayat.isEmpty)
-                const _KotakPesan(
+                const InfoBanner(
                   pesan: 'Belum ada riwayat servis untuk kendaraan ini. '
                       'Tekan "Catat Servis" untuk menambah catatan pertama.',
-                  ikon: Icons.info_outline,
                 )
               else
                 ...riwayat.map(
@@ -276,246 +280,6 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Kartu identitas kendaraan (data yang dikirim dari halaman daftar).
-class _KartuIdentitas extends StatelessWidget {
-  final Vehicle vehicle;
-
-  const _KartuIdentitas({required this.vehicle});
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme scheme = theme.colorScheme;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: scheme.primaryContainer,
-                  child: Icon(Icons.two_wheeler, color: scheme.onPrimaryContainer),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        vehicle.displayName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${vehicle.plateNumber} · ${vehicle.year}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Divider(height: 1, color: scheme.outlineVariant),
-            const SizedBox(height: 12),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _InfoKecil(
-                    ikon: Icons.speed,
-                    label: 'Kilometer',
-                    nilai: formatKm(vehicle.currentKm),
-                  ),
-                ),
-                Expanded(
-                  child: _InfoKecil(
-                    ikon: Icons.calendar_month_outlined,
-                    label: 'Tahun',
-                    nilai: vehicle.year.toString(),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Kartu tanggal jatuh tempo pajak & STNK.
-class _KartuPajak extends StatelessWidget {
-  final Vehicle vehicle;
-
-  const _KartuPajak({required this.vehicle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Column(
-          children: <Widget>[
-            _BarisPajak(
-              ikon: Icons.account_balance_outlined,
-              label: 'Pajak Tahunan',
-              tanggal: vehicle.taxDueDate,
-            ),
-            _BarisPajak(
-              ikon: Icons.assignment_outlined,
-              label: 'STNK 5 Tahunan',
-              tanggal: vehicle.stnkDueDate,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BarisPajak extends StatelessWidget {
-  final IconData ikon;
-  final String label;
-  final DateTime? tanggal;
-
-  const _BarisPajak({required this.ikon, required this.label, required this.tanggal});
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme scheme = theme.colorScheme;
-
-    final DateTime? jatuhTempo = tanggal;
-    final int? sisaHari = jatuhTempo == null ? null : daysFromToday(jatuhTempo);
-    final Color warna = sisaHari == null
-        ? scheme.onSurfaceVariant
-        : sisaHari < 0
-            ? scheme.error
-            : sisaHari <= 30
-                ? const Color(0xFFEF6C00)
-                : scheme.primary;
-
-    return ListTile(
-      dense: true,
-      leading: Icon(ikon, color: scheme.primary),
-      title: Text(label, style: theme.textTheme.bodyLarge),
-      subtitle: Text(
-        jatuhTempo == null ? 'Belum diatur' : 'Jatuh tempo ${formatTanggal(jatuhTempo)}',
-        style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-      ),
-      trailing: Text(
-        sisaHari == null
-            ? '-'
-            : sisaHari < 0
-                ? 'Lewat ${sisaHari.abs()} hari'
-                : '$sisaHari hari',
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: warna,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-/// Dua baris info kecil (ikon, label, nilai).
-class _InfoKecil extends StatelessWidget {
-  final IconData ikon;
-  final String label;
-  final String nilai;
-
-  const _InfoKecil({required this.ikon, required this.label, required this.nilai});
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme scheme = theme.colorScheme;
-
-    return Row(
-      children: <Widget>[
-        Icon(ikon, size: 18, color: scheme.primary),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-            Text(
-              nilai,
-              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-/// Kotak pesan (info / error) dengan aksi opsional.
-class _KotakPesan extends StatelessWidget {
-  final String pesan;
-  final IconData ikon;
-  final String? aksiLabel;
-  final VoidCallback? onAksi;
-
-  const _KotakPesan({
-    required this.pesan,
-    this.ikon = Icons.error_outline,
-    this.aksiLabel,
-    this.onAksi,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final Color warna = aksiLabel == null ? theme.colorScheme.primary : theme.colorScheme.error;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(
-        color: warna.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: warna.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Icon(ikon, size: 20, color: warna),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              pesan,
-              style: theme.textTheme.bodySmall?.copyWith(color: warna),
-            ),
-          ),
-          if (aksiLabel != null && onAksi != null) ...<Widget>[
-            const SizedBox(width: 8),
-            TextButton(
-              onPressed: onAksi,
-              style: TextButton.styleFrom(foregroundColor: warna),
-              child: Text(aksiLabel!),
-            ),
-          ],
-        ],
       ),
     );
   }
