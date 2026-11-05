@@ -4,6 +4,8 @@
     <!-- Supaya notifikasi terjadwal dipasang ulang setelah HP dinyalakan. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.INTERNET"/>
+
 
     <application
         android:label="bengkel_digital"
