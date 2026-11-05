@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import '../models/vehicle.dart';
 import '../repositories/vehicle_repository.dart';
 import '../services/notification_service.dart';
-import '../services/supabase_service.dart';
 import '../utils/app_exception.dart';
 import '../utils/vehicle_filter.dart';
 import 'load_state.dart';
@@ -109,9 +108,7 @@ class VehicleProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _vehicles = await _repository.fetchAll(
-        userId: SupabaseService.instance.demoUserId,
-      );
+      _vehicles = await _repository.fetchAll();
 
       // Kalau kendaraan terpilih sudah tidak ada, lepaskan pilihannya.
       final int? dipilih = _selectedVehicleId;

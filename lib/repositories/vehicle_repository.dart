@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/vehicle.dart';
 import '../services/supabase_service.dart';
 import '../utils/app_exception.dart';
+import '../utils/formatters.dart';
 
 /// Satu-satunya pintu masuk data kendaraan.
 ///
@@ -18,13 +19,20 @@ class VehicleRepository {
 
   static const String _tabel = SupabaseService.tabelVehicles;
 
-  /// Semua kendaraan milik [userId], terlama lebih dulu.
-  Future<List<Vehicle>> fetchAll({required String userId}) async {
+  /// Pemilik data selama aplikasi belum punya fitur login.
+  ///
+  /// Nilainya diambil dari `DEMO_USER_ID` di `.env` (lihat
+  /// [SupabaseService.demoUserId]). Repository yang menempelkan nilai ini ke
+  /// setiap baris baru, sehingga halaman form tidak perlu tahu soal `.env`.
+  String get _userId => SupabaseService.instance.demoUserId;
+
+  /// Semua kendaraan milik pengguna demo, terlama lebih dulu.
+  Future<List<Vehicle>> fetchAll() async {
     try {
       final List<dynamic> rows = await _db
           .from(_tabel)
           .select()
-          .eq('user_id', userId)
+          .eq('user_id', _userId)
           .order('created_at', ascending: true);
 
       return rows
@@ -51,11 +59,17 @@ class VehicleRepository {
   }
 
   /// Menyimpan kendaraan baru. Mengembalikan objek dengan `id` dari database.
+  ///
+  /// Kolom `user_id` selalu diisi dari konfigurasi di sini (bukan dari form),
+  /// supaya pemilik data tidak bisa salah/tertimpa oleh input halaman.
   Future<Vehicle> create(Vehicle kendaraan) async {
+    final Map<String, Object?> data = kendaraan.toInsertJson()
+      ..['user_id'] = _userId;
+
     try {
       final Map<String, dynamic> row = await _db
           .from(_tabel)
-          .insert(kendaraan.toInsertJson())
+          .insert(data)
           .select()
           .single();
 
@@ -143,8 +157,8 @@ class VehicleRepository {
       final Map<String, dynamic> row = await _db
           .from(_tabel)
           .update(<String, Object?>{
-            'tax_due_date': _tanggalKeTeks(taxDueDate),
-            'stnk_due_date': _tanggalKeTeks(stnkDueDate),
+            'tax_due_date': taxDueDate == null ? null : toIsoDate(taxDueDate),
+            'stnk_due_date': stnkDueDate == null ? null : toIsoDate(stnkDueDate),
           })
           .eq('id', id)
           .select()
@@ -159,12 +173,5 @@ class VehicleRepository {
     } catch (e) {
       throw AppException(SupabaseService.pesanError(e), penyebab: e);
     }
-  }
-
-  static String? _tanggalKeTeks(DateTime? tanggal) {
-    if (tanggal == null) return null;
-    final String bulan = tanggal.month.toString().padLeft(2, '0');
-    final String hari = tanggal.day.toString().padLeft(2, '0');
-    return '${tanggal.year}-$bulan-$hari';
   }
 }

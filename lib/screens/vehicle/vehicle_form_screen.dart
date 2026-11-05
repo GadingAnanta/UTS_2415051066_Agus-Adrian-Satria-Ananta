@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../../models/vehicle.dart';
 import '../../providers/vehicle_provider.dart';
-import '../../services/supabase_service.dart';
 import '../../utils/feedback.dart';
 import '../../utils/formatters.dart';
 import '../../utils/input_formatters.dart';
@@ -114,8 +113,9 @@ class _VehicleFormScreenState extends State<VehicleFormScreen> {
     final VehicleProvider provider = context.read<VehicleProvider>();
     final Vehicle data = Vehicle(
       id: widget.vehicle?.id,
-      // Pemilik data: selama belum ada login, dipakai DEMO_USER_ID dari .env.
-      userId: widget.vehicle?.userId ?? SupabaseService.instance.demoUserId,
+      // Pemilik data diisi otomatis oleh VehicleRepository memakai
+      // DEMO_USER_ID dari .env; halaman ini tidak perlu membaca konfigurasi.
+      userId: widget.vehicle?.userId ?? '',
       brand: _brandController.text.trim(),
       model: _modelController.text.trim(),
       year: int.parse(_yearController.text.trim()),
