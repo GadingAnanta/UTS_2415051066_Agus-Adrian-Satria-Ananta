@@ -4,10 +4,11 @@ import 'package:provider/provider.dart';
 import '../../models/vehicle.dart';
 import '../../providers/vehicle_provider.dart';
 import '../../utils/feedback.dart';
+import '../../utils/responsive.dart';
 import '../../utils/vehicle_filter.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/error_view.dart';
 import '../../widgets/vehicle_card.dart';
-import '../tips/tips_screen.dart';
 import 'vehicle_detail_screen.dart';
 import 'vehicle_form_screen.dart';
 
@@ -73,13 +74,6 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
       MaterialPageRoute<void>(
         builder: (_) => VehicleDetailScreen(vehicle: vehicle),
       ),
-    );
-  }
-
-  /// Buka halaman Katalog & Tips (data dari REST API).
-  Future<void> _bukaTips(BuildContext context) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const TipsScreen()),
     );
   }
 
@@ -181,11 +175,6 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
         title: const Text('Kendaraan Saya'),
         actions: <Widget>[
           IconButton(
-            tooltip: 'Katalog & Tips',
-            onPressed: () => _bukaTips(context),
-            icon: const Icon(Icons.menu_book_outlined),
-          ),
-          IconButton(
             tooltip: 'Muat ulang',
             onPressed: () => context.read<VehicleProvider>().loadVehicles(),
             icon: const Icon(Icons.refresh),
@@ -207,13 +196,10 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
 
             // 2. Gagal memuat dan belum ada data sama sekali.
             if (provider.errorMessage != null && provider.isEmpty) {
-              return EmptyState(
-                icon: Icons.error_outline,
-                title: 'Data gagal dimuat',
-                message: provider.errorMessage!,
-                actionLabel: 'Coba lagi',
-                actionIcon: Icons.refresh,
-                onAction: provider.loadVehicles,
+              return ErrorView(
+                judul: 'Data gagal dimuat',
+                pesan: provider.errorMessage!,
+                onRetry: provider.loadVehicles,
               );
             }
 
@@ -374,48 +360,78 @@ class _DaftarKendaraan extends StatelessWidget {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: provider.loadVehicles,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-        physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: hasil.length + 1,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (BuildContext context, int index) {
-          // Item pertama adalah ringkasan jumlah kendaraan.
-          if (index == 0) {
-            final String teks = provider.hasActiveFilter
-                ? '${hasil.length} dari ${provider.vehicles.length} kendaraan'
-                : '${provider.vehicles.length} kendaraan terdaftar';
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                teks,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+    final String teksRingkasan = provider.hasActiveFilter
+        ? '${hasil.length} dari ${provider.vehicles.length} kendaraan'
+        : '${provider.vehicles.length} kendaraan terdaftar';
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints batas) {
+        // < 600 px → daftar satu kolom; ≥ 600 px → grid 2–3 kolom.
+        final int kolom = Responsive.kolom(batas.maxWidth, maks: 3);
+
+        return RefreshIndicator(
+          onRefresh: provider.loadVehicles,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: <Widget>[
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                sliver: SliverToBoxAdapter(
+                  child: Text(
+                    teksRingkasan,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ),
               ),
-            );
-          }
+              if (kolom == 1)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                  sliver: SliverList.separated(
+                    itemCount: hasil.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (BuildContext context, int index) =>
+                        _kartu(context, hasil[index]),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                  sliver: SliverGrid.builder(
+                    itemCount: hasil.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: kolom,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      mainAxisExtent: 124,
+                    ),
+                    itemBuilder: (BuildContext context, int index) =>
+                        _kartu(context, hasil[index]),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
-          final Vehicle vehicle = hasil[index - 1];
-
-          return Dismissible(
-            key: ValueKey<int?>(vehicle.id),
-            direction: DismissDirection.endToStart,
-            background: const _LatarHapus(),
-            confirmDismiss: (_) => onSwipeHapus(vehicle),
-            child: VehicleCard(
-              vehicle: vehicle,
-              // Ketuk kartu = buka detail kendaraan (passing data).
-              onTap: () => onBukaDetail(vehicle),
-              // Tekan lama = menu cepat (interaksi tambahan).
-              onLongPress: () => onTekanLama(vehicle),
-              onEdit: () => onEdit(vehicle),
-              onDelete: () => onHapus(vehicle),
-            ),
-          );
-        },
+  /// Satu kartu kendaraan + gestur (ketuk, tekan lama, geser untuk hapus).
+  Widget _kartu(BuildContext context, Vehicle vehicle) {
+    return Dismissible(
+      key: ValueKey<int?>(vehicle.id),
+      direction: DismissDirection.endToStart,
+      background: const _LatarHapus(),
+      confirmDismiss: (_) => onSwipeHapus(vehicle),
+      child: VehicleCard(
+        vehicle: vehicle,
+        // Ketuk kartu = buka detail kendaraan (passing data).
+        onTap: () => onBukaDetail(vehicle),
+        // Tekan lama = menu cepat (interaksi tambahan).
+        onLongPress: () => onTekanLama(vehicle),
+        onEdit: () => onEdit(vehicle),
+        onDelete: () => onHapus(vehicle),
       ),
     );
   }

@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'providers/service_provider.dart';
 import 'providers/tips_provider.dart';
 import 'providers/vehicle_provider.dart';
-import 'screens/vehicle/vehicle_list_screen.dart';
+import 'screens/main_shell.dart';
 import 'services/notification_service.dart';
 import 'services/supabase_service.dart';
 import 'utils/app_theme.dart';
@@ -74,7 +74,7 @@ class BengkelDigitalApp extends StatelessWidget {
         ],
 
         home: supabaseSiap
-            ? const VehicleListScreen()
+            ? const MainShell()
             : const _LayarKonfigurasiGagal(),
       ),
     );

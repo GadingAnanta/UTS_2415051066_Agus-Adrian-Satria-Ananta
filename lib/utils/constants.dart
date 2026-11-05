@@ -10,6 +10,26 @@ class AppInfo {
 
   static const String appName = 'Bengkel Digital';
   static const String appTagline = 'Pengingat servis kendaraanmu';
+  static const String versi = '1.0.0';
+
+  static const String deskripsi =
+      'Bengkel Digital mencatat riwayat servis motor, menghitung sisa jarak '
+      'dan waktu menuju servis berikutnya, mengingatkan jatuh tempo pajak & '
+      'STNK, serta menampilkan laporan pengeluaran servis.';
+
+  /// Data mahasiswa pemilik proyek UTS.
+  static const String mahasiswa = 'Agus Adrian Satria Ananta';
+  static const String nim = '2415051066';
+
+  /// Ganti nilai ini bila kelasnya berbeda.
+  static const String kelas = 'TI 5A';
+  static const String mataKuliah = 'Pemrograman Web dan Mobile';
+
+  /// Alamat repositori & REST API yang dipakai aplikasi.
+  static const String repo =
+      'github.com/GadingAnanta/UTS_2415051066_Agus-Adrian-Satria-Ananta';
+  static const String apiTips =
+      'raw.githubusercontent.com/GadingAnanta/UTS_2415051066_Agus-Adrian-Satria-Ananta/main/api/tips.json';
 }
 
 /// Warna utama & warna status komponen.
