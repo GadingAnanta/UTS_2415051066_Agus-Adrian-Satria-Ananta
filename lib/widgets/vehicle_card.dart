@@ -33,44 +33,55 @@ class VehicleCard extends StatelessWidget {
         onTap: onTap,
         onLongPress: onLongPress,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+          padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               CircleAvatar(
-                radius: 26,
+                radius: 20,
                 backgroundColor: scheme.primaryContainer,
-                child: Icon(Icons.two_wheeler, color: scheme.onPrimaryContainer),
+                child: Icon(
+                  Icons.two_wheeler,
+                  size: 20,
+                  color: scheme.onPrimaryContainer,
+                ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
                       vehicle.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
+                      style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${vehicle.plateNumber}  •  ${vehicle.year}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Row(
                       children: <Widget>[
-                        Icon(Icons.speed, size: 16, color: scheme.primary),
+                        Icon(Icons.speed, size: 14, color: scheme.primary),
                         const SizedBox(width: 4),
-                        Text(
-                          formatKm(vehicle.currentKm),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+                        Flexible(
+                          child: Text(
+                            formatKm(vehicle.currentKm),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -80,7 +91,11 @@ class VehicleCard extends StatelessWidget {
               ),
               PopupMenuButton<String>(
                 tooltip: 'Menu kendaraan',
-                icon: const Icon(Icons.more_vert),
+                icon: const Icon(Icons.more_vert, size: 20),
+                iconSize: 20,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                splashRadius: 18,
                 onSelected: (String value) {
                   if (value == 'edit') {
                     onEdit();

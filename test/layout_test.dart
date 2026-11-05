@@ -7,6 +7,8 @@ import 'package:bengkel_digital/models/tips_data.dart';
 import 'package:bengkel_digital/models/vehicle.dart';
 import 'package:bengkel_digital/utils/app_theme.dart';
 import 'package:bengkel_digital/widgets/adaptive_grid.dart';
+import 'package:bengkel_digital/widgets/home/mini_vehicle_card.dart';
+import 'package:bengkel_digital/widgets/home/quick_action_card.dart';
 import 'package:bengkel_digital/widgets/home/reminder_card.dart';
 import 'package:bengkel_digital/widgets/status_chip.dart';
 import 'package:bengkel_digital/widgets/status_summary_row.dart';
@@ -164,6 +166,48 @@ void main() {
                 SizedBox(
                   height: 172,
                   child: KatalogMotorCard(motor: motor),
+                ),
+              ],
+            ),
+          ),
+          lebar,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'lebar $lebar');
+    }
+  });
+
+  testWidgets('Kartu kendaraan aman di sel grid sempit', (WidgetTester tester) async {
+    // Tinggi sel mengikuti nilai mainAxisExtent yang dipakai halaman asli:
+    // daftar kendaraan 124 px, kartu mini 92 px, aksi cepat 104 px.
+    for (final double lebar in <double>[240, 280, 360]) {
+      await tester.pumpWidget(
+        bungkus(
+          SingleChildScrollView(
+            child: Column(
+              children: <Widget>[
+                SizedBox(
+                  height: 124,
+                  child: VehicleCard(
+                    vehicle: kendaraan,
+                    onTap: () {},
+                    onEdit: () {},
+                    onDelete: () {},
+                  ),
+                ),
+                SizedBox(
+                  height: 92,
+                  child: MiniVehicleCard(vehicle: kendaraan),
+                ),
+                SizedBox(
+                  height: 104,
+                  child: QuickActionCard(
+                    ikon: Icons.add_circle_outline,
+                    judul: 'Tambah Motor',
+                    keterangan: 'Daftarkan kendaraan baru',
+                    onTap: () {},
+                  ),
                 ),
               ],
             ),
