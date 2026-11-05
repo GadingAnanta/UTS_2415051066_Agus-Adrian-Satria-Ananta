@@ -22,8 +22,8 @@ class AppInfo {
   static const String nim = '2415051066';
 
   /// Ganti nilai ini bila kelasnya berbeda.
-  static const String kelas = 'TI 5A';
-  static const String mataKuliah = 'Pemrograman Web dan Mobile';
+  static const String kelas = 'PTI 5C';
+  static const String mataKuliah = 'Pemrograman Berbasis Mobile';
 
   /// Alamat repositori & REST API yang dipakai aplikasi.
   static const String repo =
