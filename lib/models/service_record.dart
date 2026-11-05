@@ -1,3 +1,6 @@
+import '../utils/formatters.dart';
+import '../utils/json_parse.dart';
+
 /// Model satu catatan servis.
 ///
 /// Satu kendaraan bisa punya banyak catatan servis (relasi 1 : banyak).
@@ -63,7 +66,7 @@ class ServiceRecord {
     return <String, Object?>{
       'vehicle_id': vehicleId,
       'component': componentKey,
-      'service_date': _tanggalKeTeks(serviceDate),
+      'service_date': toIsoDate(serviceDate),
       'service_km': kmAtService,
       'cost': cost,
       'workshop': workshopName,
@@ -77,37 +80,16 @@ class ServiceRecord {
   /// Membuat objek dari baris tabel `service_records`.
   factory ServiceRecord.fromJson(Map<String, dynamic> json) {
     return ServiceRecord(
-      id: _keInt(json['id']),
-      vehicleId: _keInt(json['vehicle_id']) ?? 0,
+      id: keInt(json['id']),
+      vehicleId: keInt(json['vehicle_id']) ?? 0,
       componentKey: json['component'] as String? ?? 'lainnya',
-      serviceDate: _keTanggal(json['service_date']) ?? DateTime.now(),
-      kmAtService: _keInt(json['service_km']) ?? 0,
-      cost: _keInt(json['cost']) ?? 0,
+      serviceDate: keTanggal(json['service_date']) ?? DateTime.now(),
+      kmAtService: keInt(json['service_km']) ?? 0,
+      cost: keInt(json['cost']) ?? 0,
       workshopName: json['workshop'] as String?,
       note: json['note'] as String?,
-      createdAt: _keTanggal(json['created_at']) ?? DateTime.now(),
+      createdAt: keTanggal(json['created_at']) ?? DateTime.now(),
     );
-  }
-
-  static String _tanggalKeTeks(DateTime tanggal) {
-    final String bulan = tanggal.month.toString().padLeft(2, '0');
-    final String hari = tanggal.day.toString().padLeft(2, '0');
-    return '${tanggal.year}-$bulan-$hari';
-  }
-
-  static DateTime? _keTanggal(Object? nilai) {
-    if (nilai == null) return null;
-    if (nilai is DateTime) return nilai;
-    final String teks = nilai.toString();
-    if (teks.isEmpty) return null;
-    return DateTime.tryParse(teks)?.toLocal();
-  }
-
-  static int? _keInt(Object? nilai) {
-    if (nilai == null) return null;
-    if (nilai is int) return nilai;
-    if (nilai is num) return nilai.toInt();
-    return int.tryParse(nilai.toString());
   }
 
   @override

@@ -1,3 +1,5 @@
+import '../utils/json_parse.dart';
+
 /// Model untuk berkas `tips.json` yang diambil lewat REST API.
 ///
 /// Berkas ini berisi tiga bagian:
@@ -204,12 +206,7 @@ class JsonBaca {
     return hasil.isEmpty ? fallback : hasil;
   }
 
-  static int? integer(Object? nilai) {
-    if (nilai == null) return null;
-    if (nilai is int) return nilai;
-    if (nilai is num) return nilai.toInt();
-    return int.tryParse(nilai.toString());
-  }
+  static int? integer(Object? nilai) => keInt(nilai);
 
   /// Mengubah daftar JSON menjadi daftar objek model.
   /// Butir yang bukan objek dilewati, bukan membuat parsing gagal.

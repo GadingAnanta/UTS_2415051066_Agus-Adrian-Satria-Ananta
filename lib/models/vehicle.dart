@@ -1,3 +1,6 @@
+import '../utils/formatters.dart';
+import '../utils/json_parse.dart';
+
 /// Model data kendaraan (satu sepeda motor milik pengguna).
 ///
 /// Objek ini dipetakan ke tabel `vehicles` di Supabase (PostgreSQL).
@@ -85,8 +88,8 @@ class Vehicle {
       'year': year,
       'plate': plateNumber,
       'current_km': currentKm,
-      'tax_due_date': _tanggalKeTeks(taxDueDate),
-      'stnk_due_date': _tanggalKeTeks(stnkDueDate),
+      'tax_due_date': taxDueDate == null ? null : toIsoDate(taxDueDate!),
+      'stnk_due_date': stnkDueDate == null ? null : toIsoDate(stnkDueDate!),
     };
   }
 
@@ -97,41 +100,17 @@ class Vehicle {
   /// Membuat objek dari baris tabel `vehicles`.
   factory Vehicle.fromJson(Map<String, dynamic> json) {
     return Vehicle(
-      id: _keInt(json['id']),
+      id: keInt(json['id']),
       userId: json['user_id'] as String? ?? '',
       brand: json['brand'] as String? ?? '',
       model: json['model'] as String? ?? '',
-      year: _keInt(json['year']) ?? 0,
+      year: keInt(json['year']) ?? 0,
       plateNumber: json['plate'] as String? ?? '',
-      currentKm: _keInt(json['current_km']) ?? 0,
-      taxDueDate: _keTanggal(json['tax_due_date']),
-      stnkDueDate: _keTanggal(json['stnk_due_date']),
-      createdAt: _keTanggal(json['created_at']) ?? DateTime.now(),
+      currentKm: keInt(json['current_km']) ?? 0,
+      taxDueDate: keTanggal(json['tax_due_date']),
+      stnkDueDate: keTanggal(json['stnk_due_date']),
+      createdAt: keTanggal(json['created_at']) ?? DateTime.now(),
     );
-  }
-
-  /// Kolom `date` di Postgres dikirim sebagai `YYYY-MM-DD`.
-  static String? _tanggalKeTeks(DateTime? tanggal) {
-    if (tanggal == null) return null;
-    final String bulan = tanggal.month.toString().padLeft(2, '0');
-    final String hari = tanggal.day.toString().padLeft(2, '0');
-    return '${tanggal.year}-$bulan-$hari';
-  }
-
-  /// `date` -> `YYYY-MM-DD`, `timestamptz` -> ISO 8601.
-  static DateTime? _keTanggal(Object? nilai) {
-    if (nilai == null) return null;
-    if (nilai is DateTime) return nilai;
-    final String teks = nilai.toString();
-    if (teks.isEmpty) return null;
-    return DateTime.tryParse(teks)?.toLocal();
-  }
-
-  static int? _keInt(Object? nilai) {
-    if (nilai == null) return null;
-    if (nilai is int) return nilai;
-    if (nilai is num) return nilai.toInt();
-    return int.tryParse(nilai.toString());
   }
 
   @override
