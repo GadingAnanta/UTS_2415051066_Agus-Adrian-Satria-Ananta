@@ -59,7 +59,7 @@ void main() {
       await tester.pumpWidget(
         bungkus(
           SingleChildScrollView(
-            child: AdaptiveGrid(children: kartu, tinggiItem: 96),
+            child: AdaptiveGrid(tinggiItem: 96, children: kartu),
           ),
           lebar,
         ),
