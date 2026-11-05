@@ -99,6 +99,13 @@ class ServiceProvider extends ChangeNotifier {
       return;
     }
 
+    if (_vehicleId != id) {
+      // Data kendaraan sebelumnya tidak boleh ikut tampil di bawah nama
+      // kendaraan yang baru dibuka, walau hanya sesaat selama proses muat.
+      _records = <ServiceRecord>[];
+      _statuses = <ComponentServiceStatus>[];
+    }
+
     _vehicleId = id;
     _currentKm = kendaraan.currentKm;
     _state = LoadState.loading;
@@ -126,6 +133,7 @@ class ServiceProvider extends ChangeNotifier {
     if (id == null) return;
 
     _state = LoadState.loading;
+    _errorMessage = null;
     notifyListeners();
 
     try {

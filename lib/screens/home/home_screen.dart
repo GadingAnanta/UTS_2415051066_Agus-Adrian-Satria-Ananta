@@ -5,6 +5,7 @@ import '../../models/tax_reminder.dart';
 import '../../models/vehicle.dart';
 import '../../providers/vehicle_provider.dart';
 import '../../utils/constants.dart';
+import '../../utils/feedback.dart';
 import '../../utils/formatters.dart';
 import '../../utils/responsive.dart';
 import '../../widgets/adaptive_grid.dart';
@@ -286,9 +287,12 @@ class _IsiBeranda extends StatelessWidget {
   }
 
   Future<void> _bukaForm(BuildContext context) async {
-    await Navigator.of(context).push<bool>(
+    final bool? berhasil = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(builder: (_) => const VehicleFormScreen()),
     );
+
+    if (!context.mounted || berhasil != true) return;
+    tampilkanPesan(context, 'Kendaraan berhasil ditambahkan.');
   }
 
   Future<void> _bukaDetail(BuildContext context, Vehicle vehicle) async {

@@ -6,6 +6,7 @@ import '../../models/vehicle.dart';
 import '../../providers/service_provider.dart';
 import '../../utils/expense_aggregator.dart';
 import '../../utils/formatters.dart';
+import '../../widgets/error_view.dart';
 
 /// Laporan pengeluaran servis: grafik batang 6 bulan terakhir + rincian
 /// per komponen.
@@ -63,7 +64,13 @@ class _ExpenseChartScreenState extends State<ExpenseChartScreen> {
       body: SafeArea(
         child: provider.isLoading && provider.records.isEmpty
             ? const Center(child: CircularProgressIndicator())
-            : ListView(
+            : provider.errorMessage != null && provider.records.isEmpty
+                ? ErrorView(
+                    judul: 'Laporan gagal dimuat',
+                    pesan: provider.errorMessage!,
+                    onRetry: provider.refresh,
+                  )
+                : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: <Widget>[
                   _Ringkasan(
